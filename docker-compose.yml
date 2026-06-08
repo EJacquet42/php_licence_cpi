@@ -1,0 +1,110 @@
+services:
+  rsyslog:
+    build:
+      context: ./docker/rsyslog
+    container_name: rsyslog
+    ports:
+      - "514:514/tcp"
+      - "514:514/udp"
+    volumes:
+      - rsyslog-logs:/var/log/remote
+    networks:
+      app-network:
+        ipv4_address: 172.20.0.10
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: laravel
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      app-network:
+        ipv4_address: 172.20.0.20
+    depends_on:
+      - rsyslog
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://172.20.0.10:514"
+        tag: "postgres"
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      app-network:
+        ipv4_address: 172.20.0.30
+    depends_on:
+      - rsyslog
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://172.20.0.10:514"
+        tag: "mysql"
+    restart: unless-stopped
+
+  php:
+    build:
+      context: ./docker/php
+    container_name: php
+    volumes:
+      - ./laravel:/var/www/laravel
+    networks:
+      app-network:
+        ipv4_address: 172.20.0.40
+    depends_on:
+      - rsyslog
+      - postgres
+      - mysql
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://172.20.0.10:514"
+        tag: "php"
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./docker/nginx
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./laravel:/var/www/laravel
+    networks:
+      app-network:
+        ipv4_address: 172.20.0.50
+    depends_on:
+      - rsyslog
+      - php
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://172.20.0.10:514"
+        tag: "nginx"
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+  mysql-data:
+  rsyslog-logs:
