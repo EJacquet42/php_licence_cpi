@@ -10,7 +10,7 @@ services:
       - rsyslog-logs:/var/log/remote
     networks:
       app-network:
-        ipv4_address: 172.20.0.10
+        ipv4_address: 172.22.0.10
     restart: unless-stopped
 
   postgres:
@@ -24,13 +24,13 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       app-network:
-        ipv4_address: 172.20.0.20
+        ipv4_address: 172.22.0.20
     depends_on:
       - rsyslog
     logging:
       driver: syslog
       options:
-        syslog-address: "tcp://172.20.0.10:514"
+        syslog-address: "tcp://172.22.0.10:514"
         tag: "postgres"
     restart: unless-stopped
 
@@ -46,13 +46,13 @@ services:
       - mysql-data:/var/lib/mysql
     networks:
       app-network:
-        ipv4_address: 172.20.0.30
+        ipv4_address: 172.22.0.30
     depends_on:
       - rsyslog
     logging:
       driver: syslog
       options:
-        syslog-address: "tcp://172.20.0.10:514"
+        syslog-address: "tcp://172.22.0.10:514"
         tag: "mysql"
     restart: unless-stopped
 
@@ -64,7 +64,7 @@ services:
       - ./laravel:/var/www/laravel
     networks:
       app-network:
-        ipv4_address: 172.20.0.40
+        ipv4_address: 172.22.0.40
     depends_on:
       - rsyslog
       - postgres
@@ -72,7 +72,7 @@ services:
     logging:
       driver: syslog
       options:
-        syslog-address: "tcp://172.20.0.10:514"
+        syslog-address: "tcp://172.22.0.10:514"
         tag: "php"
     restart: unless-stopped
 
@@ -86,14 +86,14 @@ services:
       - ./laravel:/var/www/laravel
     networks:
       app-network:
-        ipv4_address: 172.20.0.50
+        ipv4_address: 172.22.0.50
     depends_on:
       - rsyslog
       - php
     logging:
       driver: syslog
       options:
-        syslog-address: "tcp://172.20.0.10:514"
+        syslog-address: "tcp://172.22.0.10:514"
         tag: "nginx"
     restart: unless-stopped
 
@@ -102,7 +102,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: 172.22.0.0/16
 
 volumes:
   postgres-data:
