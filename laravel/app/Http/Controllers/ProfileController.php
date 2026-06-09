@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Log;
+use App\Services\RsyslogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,13 +28,20 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $emailChanged = $user->isDirty('email');
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user->fill($request->validated());
+
+        if ($emailChanged) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
+
+        if ($emailChanged) {
+            $this->logAccount('info', "Adresse email modifiée", $user->id);
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
@@ -48,6 +57,8 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        $this->logAccount('alert', "Compte utilisateur supprimé", $user->id);
+
         Auth::logout();
 
         $user->delete();
@@ -56,5 +67,21 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    private function logAccount(string $priority, string $message, int $userId): void
+    {
+        $log = Log::create([
+            'user_id' => $userId,
+            'type' => 'account',
+            'facility' => 'authpriv',
+            'priority' => $priority,
+            'message' => $message,
+        ]);
+
+        try {
+            app(RsyslogService::class)->send($log);
+        } catch (\Throwable) {
+        }
     }
 }

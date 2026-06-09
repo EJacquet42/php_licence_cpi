@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Log;
+use App\Services\RsyslogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,10 +26,27 @@ class ConfirmablePasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        if (! Auth::guard('web')->validate([
+        $confirmed = Auth::guard('web')->validate([
             'email' => $request->user()->email,
             'password' => $request->password,
-        ])) {
+        ]);
+
+        $log = Log::create([
+            'user_id' => $request->user()->id,
+            'type' => 'auth',
+            'facility' => 'auth',
+            'priority' => $confirmed ? 'info' : 'notice',
+            'message' => $confirmed
+                ? 'Mot de passe confirmé pour action sensible'
+                : 'Échec de confirmation du mot de passe',
+        ]);
+
+        try {
+            app(RsyslogService::class)->send($log);
+        } catch (\Throwable) {
+        }
+
+        if (! $confirmed) {
             throw ValidationException::withMessages([
                 'password' => __('auth.password'),
             ]);

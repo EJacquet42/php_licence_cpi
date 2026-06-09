@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Log;
+use App\Services\RsyslogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +25,19 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        $log = Log::create([
+            'user_id' => $request->user()->id,
+            'type' => 'auth',
+            'facility' => 'auth',
+            'priority' => 'info',
+            'message' => 'Mot de passe modifié',
+        ]);
+
+        try {
+            app(RsyslogService::class)->send($log);
+        } catch (\Throwable) {
+        }
 
         return back()->with('status', 'password-updated');
     }
