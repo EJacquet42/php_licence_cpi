@@ -41,7 +41,7 @@ class DashboardController extends Controller
         }
 
         $priority = $score === $total ? 'info' : 'warning';
-        $message = "Quiz soumis par {$request->user()->name}: score {$score}/{$total}";
+        $message = "Quiz soumis (user #{$request->user()->id}): score {$score}/{$total}";
 
         $log = Log::create([
             'user_id' => Auth::id(),
