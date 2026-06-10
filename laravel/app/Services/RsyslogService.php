@@ -39,7 +39,28 @@ class RsyslogService
                 fclose($socket);
             }
         } catch (\Exception $e) {
-            // Fail silently — log already persisted in PostgreSQL
+            // Fail silently
+        }
+
+        try {
+            $payload = http_build_query([
+                'user_id' => $log->user_id,
+                'message' => $log->message,
+                'facility' => $log->facility,
+                'priority' => $log->priority,
+                'type' => $log->type,
+                'hostname' => 'laravel',
+                'timestamp' => $log->created_at->toIso8601String(),
+            ]);
+            $ctx = stream_context_create(['http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+                'content' => $payload,
+                'timeout' => 2,
+            ]]);
+            @file_get_contents('http://nginx:8081/api/logs', false, $ctx);
+        } catch (\Exception $e) {
+            // Fail silently
         }
     }
 }

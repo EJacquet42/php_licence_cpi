@@ -20,7 +20,7 @@ class LogSensitiveAccess
                 'type' => 'access',
                 'facility' => 'authpriv',
                 'priority' => 'info',
-                'message' => "Accès à {$request->method()} {$request->path()}",
+                'message' => "Accès à {$request->method()} {$request->path()} — {$request->user()->email}",
             ]);
 
             try {

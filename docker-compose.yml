@@ -56,18 +56,37 @@ services:
         tag: "mysql"
     restart: unless-stopped
 
+  postgres-event:
+    image: postgres:16-alpine
+    container_name: postgres-event
+    environment:
+      POSTGRES_DB: event
+      POSTGRES_USER: event
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - event-postgres-data:/var/lib/postgresql/data
+    networks:
+      app-network:
+        ipv4_address: 172.22.0.60
+    depends_on:
+      - rsyslog
+    restart: unless-stopped
+
   php:
     build:
       context: ./docker/php
     container_name: php
     volumes:
       - ./laravel:/var/www/laravel
+      - ./event-app:/var/www/event-app
+      - rsyslog-logs:/var/log/remote:ro
     networks:
       app-network:
         ipv4_address: 172.22.0.40
     depends_on:
       - rsyslog
       - postgres
+      - postgres-event
       - mysql
     logging:
       driver: syslog
@@ -82,8 +101,10 @@ services:
     container_name: nginx
     ports:
       - "8080:80"
+      - "8081:8081"
     volumes:
       - ./laravel:/var/www/laravel
+      - ./event-app:/var/www/event-app
     networks:
       app-network:
         ipv4_address: 172.22.0.50
@@ -107,4 +128,5 @@ networks:
 volumes:
   postgres-data:
   mysql-data:
+  event-postgres-data:
   rsyslog-logs:
