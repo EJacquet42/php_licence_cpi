@@ -17,6 +17,9 @@ class LogApiController extends Controller
             'timestamp' => 'nullable|string',
             'type' => 'nullable|string',
             'user_id' => 'nullable|integer',
+            'score' => 'nullable|integer',
+            'total' => 'nullable|integer',
+            'questions_data' => 'nullable|json',
         ]);
 
         Log::create([
@@ -25,6 +28,9 @@ class LogApiController extends Controller
             'facility' => $data['facility'],
             'priority' => $data['priority'],
             'message' => $data['message'],
+            'score' => $data['score'] ?? null,
+            'total' => $data['total'] ?? null,
+            'questions_data' => isset($data['questions_data']) ? json_decode($data['questions_data'], true) : null,
         ]);
 
         return response()->json(['success' => true]);

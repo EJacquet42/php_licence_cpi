@@ -51,6 +51,9 @@ class RsyslogService
                 'type' => $log->type,
                 'hostname' => 'laravel',
                 'timestamp' => $log->created_at->toIso8601String(),
+                'score' => $log->score,
+                'total' => $log->total,
+                'questions_data' => $log->questions_data ? json_encode($log->questions_data) : null,
             ]);
             $ctx = stream_context_create(['http' => [
                 'method' => 'POST',
