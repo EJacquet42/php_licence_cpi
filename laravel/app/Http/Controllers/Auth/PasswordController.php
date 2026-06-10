@@ -31,7 +31,7 @@ class PasswordController extends Controller
             'type' => 'auth',
             'facility' => 'auth',
             'priority' => 'info',
-            'message' => 'Mot de passe modifié',
+            'message' => "Mot de passe modifié — {$request->user()->email}",
         ]);
 
         try {

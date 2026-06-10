@@ -40,7 +40,7 @@ class ProfileController extends Controller
         $user->save();
 
         if ($emailChanged) {
-            $this->logAccount('info', "Adresse email modifiée", $user->id);
+            $this->logAccount('info', "Adresse email modifiée — {$user->email}", $user);
         }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
@@ -57,7 +57,7 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        $this->logAccount('alert', "Compte utilisateur supprimé", $user->id);
+        $this->logAccount('alert', "Compte utilisateur supprimé — {$user->email}", $user);
 
         Auth::logout();
 
@@ -69,10 +69,10 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
-    private function logAccount(string $priority, string $message, int $userId): void
+    private function logAccount(string $priority, string $message, $user): void
     {
         $log = Log::create([
-            'user_id' => $userId,
+            'user_id' => $user->id,
             'type' => 'account',
             'facility' => 'authpriv',
             'priority' => $priority,

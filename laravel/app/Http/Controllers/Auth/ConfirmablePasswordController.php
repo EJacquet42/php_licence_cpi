@@ -31,14 +31,15 @@ class ConfirmablePasswordController extends Controller
             'password' => $request->password,
         ]);
 
+        $user = $request->user();
         $log = Log::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id,
             'type' => 'auth',
             'facility' => 'auth',
             'priority' => $confirmed ? 'info' : 'notice',
             'message' => $confirmed
-                ? 'Mot de passe confirmé pour action sensible'
-                : 'Échec de confirmation du mot de passe',
+                ? "Mot de passe confirmé pour action sensible — {$user->email}"
+                : "Échec de confirmation du mot de passe — {$user->email}",
         ]);
 
         try {

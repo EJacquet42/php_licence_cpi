@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Log;
 use App\Models\User;
+use App\Services\RsyslogService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, RsyslogService $rsyslog): RedirectResponse
     {
         try {
             $request->validate([
@@ -38,12 +39,14 @@ class RegisteredUserController extends Controller
                 'password' => ['required', 'confirmed', Rules\Password::defaults()],
             ]);
         } catch (ValidationException $e) {
-            Log::create([
+            $log = Log::create([
                 'type' => 'auth',
                 'facility' => 'auth',
                 'priority' => 'notice',
-                'message' => "Tentative d'inscription échouée : {$request->email} — " . implode(', ', $e->errors()[array_key_first($e->errors())]),
+                    'message' => "Tentative d'inscription échouée — {$request->email} : " . implode(', ', $e->errors()[array_key_first($e->errors())]),
             ]);
+
+            try { $rsyslog->send($log); } catch (\Throwable) {}
 
             throw $e;
         }
