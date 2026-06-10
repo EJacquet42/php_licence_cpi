@@ -81,7 +81,14 @@
                                         @endif
                                     </div>
                                     <p class="text-gray-900 text-sm">{{ $log->message }}</p>
-                                    @if ($log->questions_data)
+                                    @if ($log->type === 'question' && $log->questions_data && isset($log->questions_data['question']))
+                                        @php $r = $log->questions_data; @endphp
+                                        <div class="mt-2 p-2 rounded text-sm {{ $r['is_correct'] ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' }}">
+                                            <p class="font-medium">{{ $r['question'] }}</p>
+                                            <p>Réponse : {{ $r['selected'] ?? 'Non répondu' }}</p>
+                                            <p class="text-xs text-gray-500">Bonne réponse : {{ $r['correct_answer'] }}</p>
+                                        </div>
+                                    @elseif ($log->questions_data && is_array($log->questions_data) && isset($log->questions_data[0]))
                                         <details class="mt-2">
                                             <summary class="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
                                                 Voir le détail des réponses ({{ $log->score }}/{{ $log->total }})

@@ -8,3 +8,4 @@ Route::get('/', function () {
 });
 
 Route::get('/event', [EventController::class, 'index'])->name('event');
+Route::get('/questions-stats', [EventController::class, 'questionsStats'])->name('questions.stats');
