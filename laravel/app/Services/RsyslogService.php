@@ -19,18 +19,23 @@ class RsyslogService
         'warning' => 4, 'notice' => 5, 'info' => 6, 'debug' => 7,
     ];
 
-    public function send(Log $log): void
+    public function formatSyslogMessage(Log $log): string
     {
         $facility = $this->facilityMap[$log->facility] ?? 1;
         $severity = $this->priorityMap[$log->priority] ?? 6;
         $pri = $facility * 8 + $severity;
 
-        $message = sprintf(
+        return sprintf(
             "<%d>1 %s php laravel - - - %s",
             $pri,
             $log->created_at->format('Y-m-d\TH:i:s.vP'),
             $log->message
         );
+    }
+
+    public function send(Log $log): void
+    {
+        $message = $this->formatSyslogMessage($log);
 
         try {
             $socket = @fsockopen('tcp://172.22.0.10', 514, $errno, $errstr, 2);
