@@ -1,117 +1,137 @@
 # php_licence_cpi
 
-Plateforme de questionnaire et centralisation de logs — Conforme ANSSI (RGS).
+Plateforme de questionnaire sur rsyslog avec centralisation et consultation des logs.
 
-## Architecture
-
-Deux applications Laravel 13 distinctes, conteneurisées avec Docker :
+Le projet contient deux applications Laravel conteneurisées avec Docker :
 
 | Application | Port | Rôle |
-|-------------|------|------|
-| **laravel** (`laravel/`) | 8080 | Questionnaire rsyslog pour les étudiants (auth Breeze) |
-| **event-app** (`event-app/`) | 8081 | Tableau de bord public des logs et statistiques |
-| **rsyslog** | 514 | Centralisation des logs (TCP/UDP) + archivage + forwarding HTTP |
+|---|---:|---|
+| `laravel/` | 8080 | Questionnaire rsyslog, authentification et génération de logs |
+| `event-app/` | 8081 | Dashboard public de consultation des logs et statistiques |
+| `rsyslog` | 514 TCP/UDP | Centralisation, archivage et forwarding des journaux |
 
-**Flux de données :**
-```
-Étudiant → Questionnaire (laravel:8080) → Log en BDD + envoi rsyslog TCP:514
-→ rsyslog archive + forward HTTP → event-app:8081/api/logs
-Conteneurs Docker → syslog driver → rsyslog → archivage → import event-app
+## Architecture générale
+
+```text
+Utilisateur -> laravel:8080 -> logs BDD + rsyslog TCP 514
+Conteneurs Docker -> driver syslog -> rsyslog -> fichiers archivés
+rsyslog -> HTTP POST /api/logs -> event-app:8081 -> dashboard logs
 ```
 
 ## Prérequis
 
 - Docker et Docker Compose
 - Git
-- Ports disponibles : 8080, 8081, 514 (TCP/UDP)
-- RAM minimale : 4 Go (recommandé 8 Go pour les 6 conteneurs)
-- Espace disque : 10 Go minimum (logs, base de données, images Docker)
+- Node.js LTS si les assets Vite sont compilés depuis l'hôte
+- Ports disponibles : 8080, 8081, 514 TCP/UDP
+- RAM minimale : 4 Go, 8 Go recommandé
+- Espace disque : 10 Go minimum
 
-## Installation
+## Installation rapide
 
 ```bash
-# 1. Cloner le projet
-git clone git@github.com:EJacquet42/php_licence_cpi.git
+git clone https://github.com/EJacquet42/php_licence_cpi.git
 cd php_licence_cpi
+git checkout feat_doc
 
-# 2. Démarrer l'infrastructure
-docker-compose up -d --build
-
-# 3. Application laravel (questionnaire)
-docker-compose exec php composer install --working-dir=/var/www/laravel
-docker-compose exec php cp /var/www/laravel/.env.example /var/www/laravel/.env
-docker-compose exec php php /var/www/laravel/artisan key:generate
-docker-compose exec php php /var/www/laravel/artisan migrate --force
-
-# 4. Application event-app (dashboard)
-docker-compose exec php composer install --working-dir=/var/www/event-app
-docker-compose exec php cp /var/www/event-app/.env.example /var/www/event-app/.env
-docker-compose exec php php /var/www/event-app/artisan key:generate
-docker-compose exec php php /var/www/event-app/artisan migrate --force
-
-# 5. Assets frontend (build via Vite)
-# Note : npm doit être installé dans le conteneur PHP.
-# Si npm est absent, installez-le d'abord :
-#   docker-compose exec php apk add --no-cache npm
-# Sinon, construisez les assets depuis l'hôte (Node.js requis en local) :
-#   cd laravel && npm install && npm run build && cd ..
-#   cd event-app && npm install && npm run build && cd ..
-docker-compose exec php npm install --working-dir=/var/www/laravel
-docker-compose exec php npm run build --working-dir=/var/www/laravel
-docker-compose exec php npm install --working-dir=/var/www/event-app
-docker-compose exec php npm run build --working-dir=/var/www/event-app
+docker compose up -d --build
 ```
 
-> **⚠️ Sans build Vite**, les pages renverront une **erreur HTTP 500** (assets manquants).  
-> Assurez-vous que l'étape 5 est exécutée avant d'accéder aux applications.
+Installation Laravel :
+
+```bash
+docker compose exec php composer install --working-dir=/var/www/laravel
+docker compose exec php cp /var/www/laravel/.env.example /var/www/laravel/.env
+docker compose exec php php /var/www/laravel/artisan key:generate
+docker compose exec php php /var/www/laravel/artisan migrate --force
+
+docker compose exec php composer install --working-dir=/var/www/event-app
+docker compose exec php cp /var/www/event-app/.env.example /var/www/event-app/.env
+docker compose exec php php /var/www/event-app/artisan key:generate
+docker compose exec php php /var/www/event-app/artisan migrate --force
+```
+
+Build des assets Vite :
+
+```bash
+cd laravel && npm install && npm run build && cd ..
+cd event-app && npm install && npm run build && cd ..
+```
+
+> Sans build Vite, certaines pages peuvent retourner une erreur HTTP 500.
 
 ## Accès
 
-- **Questionnaire** : http://localhost:8080
-- **Dashboard logs** : http://localhost:8081
-- **rsyslog** : TCP/UDP 514 (interne)
+| Service | URL |
+|---|---|
+| Questionnaire | `http://localhost:8080` |
+| Dashboard logs | `http://localhost:8081/event` |
+| Statistiques questions | `http://localhost:8081/questions-stats` |
 
 ## Commandes utiles
 
 ```bash
-# Importer les logs depuis les fichiers rsyslog (event-app)
-docker-compose exec php php /var/www/event-app/artisan logs:import-from-files
+# Voir l'état des conteneurs
+docker compose ps
 
-# Purger les logs de plus de 6 mois (conformité ANSSI)
-docker-compose exec php php /var/www/laravel/artisan logs:purge
-docker-compose exec php php /var/www/event-app/artisan logs:purge
+# Voir les logs Docker
+docker compose logs -f
 
-# Voir les logs en temps réel
-docker-compose logs -f php
+# Voir les logs rsyslog
+docker compose logs rsyslog --tail=50
 
-# Lancer les tests
-docker-compose exec php php /var/www/laravel/vendor/bin/pest
-docker-compose exec php php /var/www/event-app/vendor/bin/pest
+# Importer les fichiers rsyslog dans event-app
+docker compose exec php php /var/www/event-app/artisan logs:import-from-files
+
+# Purger les logs de plus de 6 mois
+docker compose exec php php /var/www/laravel/artisan logs:purge
+docker compose exec php php /var/www/event-app/artisan logs:purge
 ```
 
-## Services Docker
+## Tests et qualité
 
-| Service | Image | Base |
-|---------|-------|------|
-| `nginx` | nginx:1.25-alpine | Reverse proxy |
-| `php` | php:8.4-fpm | PHP-FPM + Supervisor |
-| `postgres` | postgres:16-alpine | BDD principale (`laravel`) |
-| `postgres-event` | postgres:16-alpine | BDD event-app (`event`) |
-| `mysql` | mysql:8.0 | BDD secondaire |
-| `rsyslog` | alpine:3.19 + rsyslog | Centralisateur de logs |
+```bash
+# Tests Pest
+docker compose exec php php /var/www/laravel/vendor/bin/pest
+docker compose exec php php /var/www/event-app/vendor/bin/pest
 
-## BDD
+# PHPStan
+docker compose exec php php /var/www/laravel/vendor/bin/phpstan analyse --memory-limit=512M
+docker compose exec php php /var/www/event-app/vendor/bin/phpstan analyse --memory-limit=512M
+```
 
-- **laravel** (PostgreSQL) : utilisateurs, logs avec FK utilisateur
-- **event** (PostgreSQL) : logs importés (sans FK), sessions, cache, jobs
+## Documentation du projet
 
-## Conformité ANSSI
+| Document | Rôle |
+|---|---|
+| `documentation/context_client.md` | Contexte, besoin, objectifs, contraintes |
+| `documentation/analyse.md` | UML, déploiement, synoptique, sitemap, mockups |
+| `documentation/conformite_anssi.md` | Mapping recommandations ANSSI / preuves |
+| `documentation/planning.md` | Planning prévu/réalisé, responsables et jalons |
+| `documentation/gestion_erreur.md` | Gestion des risques |
+| `documentation/indicateurs_suivi.md` | Indicateurs de pilotage |
+| `documentation/performance.md` | Protocole et résultats de performance |
+| `tests/validation.md` | Tests de validation fonctionnelle |
+| `doc/utilisation.md` | Guide utilisateur |
+| `documentation/installation.md` | Installation et configuration serveur |
 
-- Journalisation des événements d'authentification (login, logout, échec, reset)
-- Journalisation des accès aux routes sensibles
-- Rétention des logs : 6 mois (purge automatique quotidienne)
-- Pas de debug en production
+## Événements journalisés
 
-## Objectifs SMART
+| Événement | Type conseillé | Niveau |
+|---|---|---|
+| Création de compte | `auth.register` | `info` |
+| Connexion réussie | `auth.login` | `info` |
+| Connexion échouée | `auth.failed` | `warning` |
+| Déconnexion | `auth.logout` | `info` |
+| Accès route sensible | `route.sensitive` | `info` |
+| Soumission quiz | `quiz.submit` | `info` ou `warning` |
+| Erreur d'envoi rsyslog | `log.forward_error` | `error` |
+| Purge des logs | `log.purge` | `info` |
 
-Voir [`OBJECTIVES.md`](documentation/OBJECTIVES.md) pour la liste complète des objectifs SMART définis suite à l'évaluation du groupe G3 (note 8,5/20).
+## Sécurité et conformité
+
+- Les mots de passe, tokens et secrets ne doivent jamais être écrits dans les logs.
+- `APP_DEBUG` doit être à `false` en production.
+- Les logs sont centralisés avec rsyslog.
+- Une durée de conservation de 6 mois est prévue.
+- Les preuves de conformité sont décrites dans `documentation/conformite_anssi.md`.

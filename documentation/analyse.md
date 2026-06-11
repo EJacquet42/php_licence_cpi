@@ -1,60 +1,77 @@
 # Analyse UML — Projet php_licence_cpi
 
-## Diagramme de cas d'utilisation (Use Case)
+## Objectif
 
-```mermaid
+Ce document présente les éléments de conception du projet : cas d'utilisation, déploiement Docker, schéma synoptique, sitemap complet et maquettes fonctionnelles. Il est construit pour correspondre aux routes et fonctionnalités réellement présentes dans les deux applications Laravel.
+
 ---
-title: Diagramme de cas d'utilisation — Dashboard PHP / Rsyslog
----
-flowchart TB
-    subgraph Systeme["Système php_licence_cpi"]
-        direction TB
 
-        subgraph AppPrincipale["Application questionnaire (port 8080)"]
-            UC1["S'authentifier<br/>(login/register)"]
-            UC2["Répondre au questionnaire rsyslog<br/>(/dashboard)"]
-            UC3["Corriger le questionnaire"]
-            UC4["Envoyer les logs du quiz<br/>vers rsyslog"]
-        end
+## Diagramme de cas d'utilisation
 
-        subgraph EventApp["Dashboard évaluation (port 8081)"]
-            UC5["Visualiser les logs centralisés<br/>de tous les utilisateurs"]
-            UC6["Filtrer les logs<br/>(type, priorité, date)"]
-        end
+```plantuml
+@startuml
+left to right direction
+actor "Utilisateur\n(Étudiant)" as User
+actor "Évaluateur\n/ Administrateur" as Eval
+actor "Système Docker\n/ rsyslog" as Sys
 
-        subgraph Backend["Système back-end"]
-            UC7["Collecter les logs<br/>(rsyslog :514 TCP/UDP)"]
-            UC8["Forward HTTP vers API<br/>(omhttp → POST /api/logs)"]
-            UC9["Archiver les logs<br/>dans /var/log/remote/"]
-            UC10["Parser les fichiers rsyslog<br/>→ base postgres-event"]
-            UC11["Purger les logs<br/>(rétention 6 mois)"]
-        end
-    end
+rectangle "Application questionnaire — port 8080" {
+  usecase "Créer un compte" as UC_Register
+  usecase "Se connecter" as UC_Login
+  usecase "Réinitialiser le mot de passe" as UC_Reset
+  usecase "Répondre au questionnaire" as UC_Quiz
+  usecase "Soumettre le quiz" as UC_Submit
+  usecase "Consulter ses logs" as UC_Event
+  usecase "Générer un log manuel" as UC_Generator
+  usecase "Gérer son profil" as UC_Profile
+  usecase "Se déconnecter" as UC_Logout
+}
 
-    ActeurUtilisateur(["Utilisateur (Étudiant)"])
-    ActeurEvaluateur(["Évaluateur (Professeur)"])
-    ActeurSysteme(["Système (Docker/CRON)"])
+rectangle "Dashboard logs — port 8081" {
+  usecase "Consulter les logs centralisés" as UC_Logs
+  usecase "Filtrer les logs" as UC_Filter
+  usecase "Consulter les statistiques des questions" as UC_Stats
+}
 
-    ActeurUtilisateur --- UC1
-    ActeurUtilisateur --- UC2
-    ActeurUtilisateur --- UC3
-    ActeurUtilisateur --- UC4
+rectangle "Système de journalisation" {
+  usecase "Recevoir les logs TCP/UDP 514" as UC_Rsyslog
+  usecase "Archiver les logs" as UC_Archive
+  usecase "Forward HTTP vers API" as UC_Forward
+  usecase "Importer les fichiers de logs" as UC_Import
+  usecase "Purger les logs anciens" as UC_Purge
+}
 
-    ActeurEvaluateur --- UC5
-    ActeurEvaluateur --- UC6
+User --> UC_Register
+User --> UC_Login
+User --> UC_Reset
+User --> UC_Quiz
+User --> UC_Submit
+User --> UC_Event
+User --> UC_Generator
+User --> UC_Profile
+User --> UC_Logout
 
-    ActeurSysteme --- UC7
-    ActeurSysteme --- UC8
-    ActeurSysteme --- UC9
-    ActeurSysteme --- UC10
-    ActeurSysteme --- UC11
+Eval --> UC_Logs
+Eval --> UC_Filter
+Eval --> UC_Stats
 
-    UC4 -.->|"déclenche"| UC7
-    UC7 -.->|"alimente"| UC8
-    UC8 -.->|"alimente"| UC5
-    UC7 -.->|"alimente"| UC9
-    UC9 -.->|"alimente"| UC10
-    UC10 -.->|"alimente"| UC5
+Sys --> UC_Rsyslog
+Sys --> UC_Archive
+Sys --> UC_Forward
+Sys --> UC_Import
+Sys --> UC_Purge
+
+UC_Register ..> UC_Rsyslog : génère log
+UC_Login ..> UC_Rsyslog : génère log
+UC_Logout ..> UC_Rsyslog : génère log
+UC_Submit ..> UC_Rsyslog : génère log
+UC_Generator ..> UC_Rsyslog : génère log
+UC_Rsyslog ..> UC_Archive
+UC_Rsyslog ..> UC_Forward
+UC_Archive ..> UC_Import
+UC_Import ..> UC_Logs
+UC_Forward ..> UC_Logs
+@enduml
 ```
 
 ---
@@ -62,149 +79,77 @@ flowchart TB
 ## Diagramme de déploiement / blocs
 
 ```mermaid
----
-title: Diagramme de déploiement — Infrastructure Docker
----
 flowchart LR
-    subgraph Externe["Utilisateurs"]
-        Navigateur1["🧑 Navigateur<br/>Étudiant"]
-        Navigateur2["🧑 Navigateur<br/>Évaluateur"]
+    subgraph Externe[Utilisateurs]
+        E1[Navigateur étudiant]
+        E2[Navigateur évaluateur]
     end
 
-    subgraph DockerHost["Hôte Docker<br/>172.22.0.0/16"]
-        subgraph Reseau["Réseau app-network"]
-            direction TB
-
-            Nginx["🧱 nginx<br/>172.22.0.50:80<br/>Ports hôte: 8080→80, 8081→8081"]
-
-            subgraph PHP["PHP-FPM<br/>172.22.0.40"]
-                AppQuestionnaire["App Questionnaire<br/>/var/www/laravel"]
-                AppEvaluation["App Évaluation<br/>/var/www/event-app<br/>Dashboard logs"]
-            end
-
-            subgraph DB["Bases de données"]
-                Postgres["🐘 postgres<br/>172.22.0.20<br/>DB: laravel"]
-                Mysql["🐬 mysql<br/>172.22.0.30"]
-                PostgresEvent["🐘 postgres-event<br/>172.22.0.60<br/>DB: event"]
-            end
-
-            Rsyslog["📝 rsyslog<br/>172.22.0.10<br/>Ports: 514 TCP/UDP"]
+    subgraph DockerHost[Hôte Docker - réseau app-network 172.22.0.0/16]
+        subgraph NGINX[nginx 172.22.0.50]
+            N1[Port 8080 -> questionnaire]
+            N2[Port 8081 -> dashboard logs]
         end
 
-        subgraph Stockage["Volumes Docker"]
-            VolLogs["📁 rsyslog-logs<br/>/var/log/remote/"]
-            VolPostgres["📁 postgres-data"]
-            VolMysql["📁 mysql-data"]
-            VolEvent["📁 event-postgres-data"]
+        subgraph PHP[php-fpm 172.22.0.40]
+            LARAVEL[Application laravel /var/www/laravel]
+            EVENTAPP[Application event-app /var/www/event-app]
         end
+
+        RSYSLOG[rsyslog 172.22.0.10\nTCP/UDP 514]
+        PG1[(postgres\nDB laravel\n172.22.0.20)]
+        PG2[(postgres-event\nDB event\n172.22.0.60)]
+        MYSQL[(mysql\n172.22.0.30)]
+
+        VOL1[(Volume rsyslog-logs)]
+        VOL2[(Volume postgres-data)]
+        VOL3[(Volume event-postgres-data)]
+        VOL4[(Volume mysql-data)]
     end
 
-    Navigateur1 -->|"HTTP 8080"| Nginx
-    Navigateur2 -->|"HTTP 8081"| Nginx
+    E1 -->|HTTP 8080| N1
+    E2 -->|HTTP 8081| N2
+    NGINX -->|FastCGI 9000| PHP
 
-    Nginx -->|"fastcgi :9000"| PHP
+    LARAVEL -->|SQL| PG1
+    LARAVEL -->|SQL éventuel| MYSQL
+    EVENTAPP -->|SQL| PG2
 
-    AppQuestionnaire -->|"TCP :514"| Rsyslog
-    AppQuestionnaire -->|"SQL"| Postgres
-    AppQuestionnaire -->|"SQL"| Mysql
+    LARAVEL -->|Logs TCP 514| RSYSLOG
+    EVENTAPP -->|Lecture fichiers| VOL1
+    RSYSLOG -->|Archive| VOL1
+    RSYSLOG -->|Forward HTTP POST /api/logs| NGINX
 
-    AppEvaluation -->|"lecture fichiers"| VolLogs
-    AppEvaluation -->|"SQL"| PostgresEvent
-
-    Rsyslog -->|"écriture"| VolLogs
-    Rsyslog -->|"HTTP POST /api/logs"| Nginx
-    Nginx -->|"fastcgi :9000"| AppQuestionnaire
-
-    Postgres -->|"logs Docker<br/>TCP :514"| Rsyslog
-    Mysql -->|"logs Docker<br/>TCP :514"| Rsyslog
-    PHP -->|"logs Docker<br/>TCP :514"| Rsyslog
-    Nginx -->|"logs Docker<br/>TCP :514"| Rsyslog
+    PG1 --> VOL2
+    PG2 --> VOL3
+    MYSQL --> VOL4
 ```
 
 ---
 
-## Schéma synoptique
+## Schéma synoptique du projet
 
 ```mermaid
----
-title: Schéma synoptique — Flux fonctionnel des logs
----
 flowchart TB
-    subgraph Utilisateurs["Utilisateurs"]
-        Etudiant["🧑 Étudiant<br/>Navigateur web"]
-        Professeur["🧑 Professeur<br/>Navigateur web"]
-    end
-
-    subgraph Frontend["Couche présentation — nginx"]
-        Quiz["📋 Questionnaire rsyslog<br/>port 8080 /dashboard"]
-        EvalDashboard["📈 Dashboard évaluation<br/>port 8081 /event"]
-    end
-
-    subgraph Logique["Couche métier — PHP/Laravel"]
-        Correction["✓ Correction du quiz<br/>Calcul du score"]
-        RsyslogService["📤 RsyslogService<br/>Envoi TCP :514"]
-        LogImport["📥 Import fichiers rsyslog<br/>Parser → BDD"]
-        LogApi["🌐 API REST<br/>POST /api/logs"]
-    end
-
-    subgraph Collecte["Couche collecte — rsyslog"]
-        SyslogCollect["📡 Collecte syslog<br/>TCP/UDP :514"]
-        ArchiveLogs["💾 Archivage fichiers<br/>/var/log/remote/"]
-        ForwardHTTP["↗️ Forward HTTP<br/>omhttp → POST /api/logs"]
-    end
-
-    subgraph Stockage["Couche stockage"]
-        DB_Quiz["🐘 PostgreSQL<br/>Table logs<br/>(app questionnaire)"]
-        DB_Event["🐘 PostgreSQL<br/>Table logs<br/>(app évaluation)"]
-        FilesLogs["📁 Fichiers .log"]
-    end
-
-    subgraph Retention["Couche rétention"]
-        Purge["🧹 Purge automatique<br/>Scheduler Laravel<br/>6 mois"]
-    end
-
-    %% Flux utilisateur
-    Etudiant -->|"HTTP 8080"| Quiz
-    Professeur -->|"HTTP 8081"| EvalDashboard
-
-    %% Logique métier
-    Quiz -->|"Soumission"| Correction
-    Correction -->|"Log type=quiz"| RsyslogService
-
-    %% Flux syslog
-    RsyslogService -->|"TCP :514"| SyslogCollect
-    SyslogCollect -->|"Écriture"| ArchiveLogs
-    ArchiveLogs -->|"Stockage"| FilesLogs
-    SyslogCollect -->|"Forward"| ForwardHTTP
-
-    %% Flux API
-    ForwardHTTP -->|"HTTP POST"| LogApi
-    LogApi -->|"Insertion"| DB_Quiz
-
-    %% Flux event-app
-    FilesLogs -->|"Lecture périodique"| LogImport
-    LogImport -->|"Insertion"| DB_Event
-    DB_Event -->|"Lecture"| EvalDashboard
-
-    %% Rétention
-    DB_Quiz --> Purge
-    DB_Event --> Purge
-    FilesLogs -.->|"logrotate"| Purge
-
-    %% Style
-    classDef user fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
-    classDef front fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef logic fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    classDef collect fill:#fce4ec,stroke:#d32f2f,stroke-width:2px
-    classDef storage fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef retention fill:#fff8e1,stroke:#f9a825,stroke-width:2px
-
-    class Etudiant,Professeur user
-    class Quiz,EvalDashboard front
-    class Correction,RsyslogService,LogImport,LogApi logic
-    class SyslogCollect,ArchiveLogs,ForwardHTTP collect
-    class DB_Quiz,DB_Event,FilesLogs storage
-    class Purge retention
+    A[Utilisateur] --> B[Application questionnaire :8080]
+    B --> C[Authentification Laravel Breeze]
+    B --> D[Questionnaire rsyslog]
+    D --> E[Correction et calcul du score]
+    E --> F[Génération d'un log quiz.submit]
+    C --> G[Génération logs auth]
+    F --> H[RsyslogService]
+    G --> H
+    H --> I[rsyslog TCP/UDP 514]
+    I --> J[Archivage fichiers /var/log/remote]
+    I --> K[Forward HTTP vers event-app]
+    J --> L[Import fichiers logs]
+    K --> M[API /api/logs]
+    L --> N[Base event]
+    M --> N
+    N --> O[Dashboard logs :8081/event]
+    N --> P[Statistiques :8081/questions-stats]
+    O --> Q[Évaluateur]
+    P --> Q
 ```
 
 ---
@@ -212,241 +157,223 @@ flowchart TB
 ## Légende des flux
 
 | Flux | Protocole | Direction |
-|------|-----------|-----------|
-| Navigation questionnaire | HTTP 8080 | Étudiant → nginx |
-| Navigation évaluation | HTTP 8081 | Évaluateur → nginx |
-| Exécution PHP | FastCGI :9000 | nginx → php-fpm |
-| Logs applicatifs | Syslog TCP :514 | PHP → rsyslog |
-| Logs conteneurs | Docker syslog driver → TCP :514 | Tous conteneurs → rsyslog |
-| Forward HTTP | HTTP POST /api/logs | rsyslog → nginx → Laravel |
-| Import fichiers | Lecture volume Docker | event-app → /var/log/remote/ |
-| Requêtes SQL | PostgreSQL / MySQL | Laravel/event-app → BDD |
+|---|---|---|
+| Navigation questionnaire | HTTP 8080 | Utilisateur → nginx |
+| Navigation dashboard | HTTP 8081 | Évaluateur → nginx |
+| Exécution PHP | FastCGI 9000 | nginx → php-fpm |
+| Logs applicatifs | Syslog TCP 514 | Laravel → rsyslog |
+| Logs conteneurs | Docker syslog driver | Conteneurs → rsyslog |
+| Forward HTTP | HTTP POST `/api/logs` | rsyslog → event-app |
+| Import fichiers | Lecture volume Docker | event-app → `/var/log/remote` |
+| Requêtes SQL | PostgreSQL / MySQL | Applications → bases |
 
 ---
 
-## Sitemap (Plan du site)
+## Sitemap complet
 
 ```mermaid
----
-title: Sitemap — Architecture des pages
----
 flowchart TB
-    subgraph AppQuestionnaire["Application questionnaire — port 8080"]
-        direction TB
-
-        Accueil["/ <br/>↳ redirection vers /login"]
-
-        subgraph Auth["Pages publiques (non connecté)"]
-            Login["/login<br/>Connexion"]
-            Register["/register<br/>Inscription"]
-            Forgot["/forgot-password<br/>Mot de passe oublié"]
-            Reset["/reset-password/{token}<br/>Réinitialisation"]
-        end
-
-        subgraph App["Pages authentifiées"]
-            Dashboard["/dashboard<br/>Questionnaire rsyslog<br/>↳ Correction + envoi logs"]
-        end
-
-        subgraph API["API interne (réseau Docker)"]
-            ApiLogs["POST /api/logs<br/>Réception logs depuis rsyslog"]
-            Submit["POST /dashboard/submit<br/>Soumission questionnaire"]
-        end
-
-        Accueil --> Login
-        Accueil --> Register
-        Login --> Dashboard
-        Register --> Dashboard
+    subgraph Questionnaire[Application questionnaire - port 8080]
+        ROOT1[/]
+        LOGIN[/login]
+        REGISTER[/register]
+        FORGOT[/forgot-password]
+        RESET[/reset-password/{token}]
+        VERIFY[/verify-email]
+        DASH[/dashboard]
+        SUBMIT[POST /dashboard/submit]
+        EVENT[/event]
+        GENERATOR_GET[GET /generator]
+        GENERATOR_POST[POST /generator]
+        PROFILE_GET[GET /profile]
+        PROFILE_PATCH[PATCH /profile]
+        PROFILE_DELETE[DELETE /profile]
+        LOGOUT[POST /logout]
+        API_LOGS1[POST /api/logs]
     end
 
-    subgraph AppEvaluation["Application évaluation — port 8081"]
-        direction TB
-
-        Home["/ <br/>↳ redirection vers /event"]
-        EvalEvent["/event<br/>Dashboard logs centralisés<br/>↳ Filtres : type, priorité, date<br/>↳ Pagination 50/page<br/>↳ Public (sans auth)"]
-        EvalApi["POST /api/logs<br/>Réception logs depuis rsyslog"]
+    subgraph EventApp[Application dashboard logs - port 8081]
+        ROOT2[/]
+        EVENT2[/event]
+        STATS[/questions-stats]
+        API_LOGS2[POST /api/logs]
     end
 
-    AppQuestionnaire -.->|"même conteneur php"| AppEvaluation
+    ROOT1 --> LOGIN
+    LOGIN --> DASH
+    REGISTER --> DASH
+    FORGOT --> RESET
+    DASH --> SUBMIT
+    DASH --> EVENT
+    DASH --> GENERATOR_GET
+    GENERATOR_GET --> GENERATOR_POST
+    DASH --> PROFILE_GET
+    PROFILE_GET --> PROFILE_PATCH
+    PROFILE_GET --> PROFILE_DELETE
+    DASH --> LOGOUT
+
+    ROOT2 --> EVENT2
+    EVENT2 --> STATS
 ```
 
 ---
 
-## Mockups (Maquettes fonctionnelles)
+## Maquettes fonctionnelles
 
-### Mockup 1 — Page de connexion (/login)
+### Maquette 1 — Connexion `/login`
 
-```mermaid
----
-title: Mockup — Connexion
----
-flowchart TB
-    subgraph Page["Page de connexion"]
-        direction TB
-
-        Card["
-        ┌──────────────────────────────────┐
-        │                                  │
-        │    🔐 Connexion                  │
-        │                                  │
-        │    Email                         │
-        │    ┌──────────────────────────┐  │
-        │    │  email@example.com       │  │
-        │    └──────────────────────────┘  │
-        │                                  │
-        │    Mot de passe                  │
-        │    ┌──────────────────────────┐  │
-        │    │  •••••••••••             │  │
-        │    └──────────────────────────┘  │
-        │                                  │
-        │    ┌──────────────────────────┐  │
-        │    │  Se connecter            │  │
-        │    └──────────────────────────┘  │
-        │                                  │
-        │    Mot de passe oublié ?         │
-        │    Vous n'avez pas de compte ?   │
-        │    → S'inscrire                  │
-        └──────────────────────────────────┘
-        "]
-    end
+```text
+┌────────────────────────────────────────────┐
+│ Connexion                                  │
+├────────────────────────────────────────────┤
+│ Email                                      │
+│ [ utilisateur@example.com              ]   │
+│ Mot de passe                               │
+│ [ •••••••••••••••••                   ]   │
+│                                            │
+│ [ Se connecter ]                           │
+│                                            │
+│ Mot de passe oublié ?                      │
+│ Pas encore de compte ? S'inscrire          │
+└────────────────────────────────────────────┘
 ```
 
-### Mockup 2 — Questionnaire (/dashboard)
+### Maquette 2 — Inscription `/register`
 
-```mermaid
----
-title: Mockup — Questionnaire rsyslog
----
-flowchart TB
-    subgraph Page["Page Questionnaire"]
-        direction TB
-
-        Header["
-        ┌─────────────────────────────────────────────┐
-        │  Questionnaire : fonctionnement des logs    │
-        │  avec rsyslog                               │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Intro["
-        ┌─────────────────────────────────────────────┐
-        │  Réponds aux questions ci-dessous, puis     │
-        │  clique sur le bouton de correction.        │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Q1["
-        ┌─────────────────────────────────────────────┐
-        │  1. Quel port utilise rsyslog par défaut ?  │
-        │                                             │
-        │  ○ 80                                       │
-        │  ● 514                                      │
-        │  ○ 443                                      │
-        │  ○ 8080                                     │
-        │                                             │
-        │  ┌─────────────────────────────────────┐    │
-        │  │  ✅ Bonne réponse.  Le port par     │    │
-        │  │  défaut de rsyslog est le 514.      │    │
-        │  └─────────────────────────────────────┘    │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Q2["
-        ┌─────────────────────────────────────────────┐
-        │  2. Quel est le rôle d'omhttp ?             │
-        │                                             │
-        │  ○ Gérer les connexions HTTP entrantes      │
-        │  ● Forwarder des logs via HTTP              │
-        │  ○ Chiffrer les messages syslog             │
-        │  ○ Filtrer les logs par priorité            │
-        │                                             │
-        │  ┌─────────────────────────────────────┐    │
-        │  │  ❌ Mauvaise réponse. omhttp per-   │    │
-        │  │  met à rsyslog d'envoyer des logs   │    │
-        │  │  vers une API HTTP.                 │    │
-        │  └─────────────────────────────────────┘    │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Buttons["
-        ┌─────────────────────────────────────────────┐
-        │  [Corriger]  [Réinitialiser]  [Envoyer ✓]  │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Score["
-        ┌─────────────────────────────────────────────┐
-        │  Score : 1 / 2 — 50%                        │
-        │  Résultat correct, mais quelques notions    │
-        │  sont à revoir.                             │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Header --> Intro --> Q1 --> Q2 --> Buttons --> Score
-    end
+```text
+┌────────────────────────────────────────────┐
+│ Création de compte                         │
+├────────────────────────────────────────────┤
+│ Nom                                        │
+│ [ Esteban                              ]   │
+│ Email                                      │
+│ [ esteban@example.com                  ]   │
+│ Mot de passe                               │
+│ [ •••••••••••••••••                   ]   │
+│ Confirmation                              │
+│ [ •••••••••••••••••                   ]   │
+│                                            │
+│ [ Créer le compte ]                        │
+└────────────────────────────────────────────┘
 ```
 
-### Mockup 3 — Dashboard évaluation (port 8081 /event)
+### Maquette 3 — Questionnaire `/dashboard`
 
-```mermaid
----
-title: Mockup — Dashboard évaluation (port 8081)
----
-flowchart TB
-    subgraph Page["Page Dashboard Évaluation"]
-        direction TB
-
-        Title["
-        ┌─────────────────────────────────────────────┐
-        │  Événements & Logs — Évaluation            │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Filters["
-        ┌─────────────────────────────────────────────┐
-        │  Type    Priorité    Du          Au         │
-        │  ┌────┐  ┌───────┐  ┌────────┐ ┌────────┐  │
-        │  │Tous│  │Toutes │  │jj/mm  │ │jj/mm  │  │
-        │  └────┘  └───────┘  └────────┘ └────────┘  │
-        │  [Filtrer]  [Réinitialiser]                │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Log1["
-        ┌─────────────────────────────────────────────┐
-        │  [warning]  [auth]  [quiz]  #42  système    │
-        │  Score 2/5 - Quel port utilise rsyslog...   │
-        │  ▸ Voir le détail des réponses (2/5)        │
-        │                              10/06/2026     │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Log2["
-        ┌─────────────────────────────────────────────┐
-        │  [info]  [local0]  [system]  système         │
-        │  Log système depuis le conteneur nginx      │
-        │                              10/06/2026     │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Log3["
-        ┌─────────────────────────────────────────────┐
-        │  [error]  [kern]  [system]  système         │
-        │  Kernel error from container php            │
-        │                              10/06/2026     │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Pagination["
-        ┌─────────────────────────────────────────────┐
-        │  ← Précédente   1 2 3 ... 8   Suivante →   │
-        └─────────────────────────────────────────────┘
-        "]
-
-        Note["
-        ℹ️ Page publique — aucune authentification requise
-        "]
-
-        Title --> Filters --> Log1 --> Log2 --> Log3 --> Pagination
-        Filters --> Note
-    end
+```text
+┌────────────────────────────────────────────┐
+│ Questionnaire rsyslog                      │
+├────────────────────────────────────────────┤
+│ Question 1 / 20                            │
+│ Quel port utilise rsyslog par défaut ?     │
+│ ( ) 80                                     │
+│ (x) 514                                    │
+│ ( ) 443                                    │
+│                                            │
+│ Question 2 / 20                            │
+│ ...                                        │
+│                                            │
+│ [ Corriger ] [ Réinitialiser ] [ Envoyer ] │
+└────────────────────────────────────────────┘
 ```
+
+### Maquette 4 — Résultat du quiz
+
+```text
+┌────────────────────────────────────────────┐
+│ Résultat du questionnaire                  │
+├────────────────────────────────────────────┤
+│ Score : 16 / 20                            │
+│ Pourcentage : 80 %                         │
+│                                            │
+│ Réponses correctes : affichées en vert     │
+│ Réponses incorrectes : affichées en rouge  │
+│                                            │
+│ Log généré : quiz.submit                   │
+└────────────────────────────────────────────┘
+```
+
+### Maquette 5 — Générateur de logs `/generator`
+
+```text
+┌────────────────────────────────────────────┐
+│ Générateur manuel de logs                  │
+├────────────────────────────────────────────┤
+│ Type d'événement                           │
+│ [ auth.login ▼ ]                           │
+│ Niveau                                     │
+│ [ info ▼ ]                                 │
+│ Message                                    │
+│ [ Message de test                      ]   │
+│                                            │
+│ [ Générer le log ]                         │
+└────────────────────────────────────────────┘
+```
+
+### Maquette 6 — Profil `/profile`
+
+```text
+┌────────────────────────────────────────────┐
+│ Gestion du profil                          │
+├────────────────────────────────────────────┤
+│ Nom                                        │
+│ [ Esteban                              ]   │
+│ Email                                      │
+│ [ esteban@example.com                  ]   │
+│                                            │
+│ [ Enregistrer ]                            │
+│ [ Supprimer le compte ]                    │
+└────────────────────────────────────────────┘
+```
+
+### Maquette 7 — Dashboard logs `/event`
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Événements et logs                                           │
+├──────────────────────────────────────────────────────────────┤
+│ Type [Tous ▼] Priorité [Toutes ▼] Du [jj/mm] Au [jj/mm]      │
+│ [ Filtrer ] [ Réinitialiser ]                                │
+├──────────────────────────────────────────────────────────────┤
+│ Date                Niveau    Type           Message         │
+│ 10/06/2026 14:32    info      auth.login     Connexion OK    │
+│ 10/06/2026 14:35    info      quiz.submit    Score 16/20     │
+│ 10/06/2026 14:40    warning   auth.failed    Login refusé    │
+├──────────────────────────────────────────────────────────────┤
+│ ← Précédent   Page 1 / 8   Suivant →                         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Maquette 8 — Statistiques questions `/questions-stats`
+
+```text
+┌────────────────────────────────────────────┐
+│ Statistiques des questions                 │
+├────────────────────────────────────────────┤
+│ Question | Réussite | Échecs | Taux        │
+│ Q1       | 18       | 2      | 90 %        │
+│ Q2       | 14       | 6      | 70 %        │
+│ Q3       | 10       | 10     | 50 %        │
+└────────────────────────────────────────────┘
+```
+
+---
+
+## Cohérence routes / documentation
+
+| Route | Application | Présente dans le sitemap | Fonction |
+|---|---|---|---|
+| `/login` | questionnaire | Oui | Connexion |
+| `/register` | questionnaire | Oui | Inscription |
+| `/dashboard` | questionnaire | Oui | Questionnaire |
+| `POST /dashboard/submit` | questionnaire | Oui | Soumission quiz |
+| `/event` | questionnaire | Oui | Logs personnels ou sensibles |
+| `/generator` | questionnaire | Oui | Générateur de logs |
+| `/profile` | questionnaire | Oui | Gestion profil |
+| `/event` | event-app | Oui | Dashboard centralisé |
+| `/questions-stats` | event-app | Oui | Statistiques questions |
+| `POST /api/logs` | event-app | Oui | Réception logs |
+
+## Conclusion
+
+Cette analyse couvre les principales fonctionnalités et les routes des deux applications.
+Les éléments de conception sont alignés avec l'infrastructure Docker, les usages attendus et les besoins de traçabilité du projet.
