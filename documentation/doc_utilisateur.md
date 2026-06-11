@@ -21,7 +21,7 @@ Il est destiné à un utilisateur étudiant, à un administrateur ou à un éval
 
 Résultat attendu : le compte est créé et un log d'inscription est généré.
 
-Capture à ajouter : `doc/captures/register.png`.
+![Page d'inscription](doc/captures/register.png)
 
 ## 2. Se connecter
 
@@ -31,7 +31,7 @@ Capture à ajouter : `doc/captures/register.png`.
 
 Résultat attendu : l'utilisateur arrive sur le questionnaire.
 
-Capture à ajouter : `doc/captures/login.png`.
+![Page de connexion](doc/captures/login.png)
 
 ## 3. Répondre au questionnaire
 
@@ -42,7 +42,7 @@ Capture à ajouter : `doc/captures/login.png`.
 
 Résultat attendu : le score est calculé et la soumission est enregistrée.
 
-Capture à ajouter : `doc/captures/questionnaire.png`.
+![Questionnaire rsyslog](doc/captures/questionnaire.png)
 
 ## 4. Consulter son résultat
 
@@ -55,7 +55,7 @@ Les informations attendues sont :
 - message de résultat ;
 - log associé à la soumission.
 
-Capture à ajouter : `doc/captures/resultat_quiz.png`.
+![Résultat du quiz](doc/captures/resultat_quiz.png)
 
 ## 5. Se déconnecter
 
@@ -65,7 +65,7 @@ Capture à ajouter : `doc/captures/resultat_quiz.png`.
 
 Résultat attendu : un log de déconnexion est généré.
 
-Capture à ajouter : `doc/captures/logout.png`.
+![Déconnexion](doc/captures/logout.png)
 
 ## 6. Consulter les logs dans le dashboard
 
@@ -84,7 +84,7 @@ Logs attendus après un parcours complet :
 | Soumission quiz | `quiz.submit` |
 | Déconnexion | `auth.logout` |
 
-Capture à ajouter : `doc/captures/dashboard_logs.png`.
+![Dashboard des logs](doc/captures/dashboard_logs.png)
 
 ## 7. Générer un log manuel si la page existe
 
@@ -95,7 +95,7 @@ Si la page `/generator` est disponible :
 3. Générer un log de test.
 4. Vérifier sa présence dans le dashboard de logs.
 
-Capture à ajouter : `doc/captures/generator.png`.
+![Générateur de logs manuel](doc/captures/generator.png)
 
 ## 8. Comprendre les niveaux de logs
 
