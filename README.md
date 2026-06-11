@@ -24,6 +24,8 @@ Conteneurs Docker → syslog driver → rsyslog → archivage → import event-a
 - Docker et Docker Compose
 - Git
 - Ports disponibles : 8080, 8081, 514 (TCP/UDP)
+- RAM minimale : 4 Go (recommandé 8 Go pour les 6 conteneurs)
+- Espace disque : 10 Go minimum (logs, base de données, images Docker)
 
 ## Installation
 
@@ -47,12 +49,21 @@ docker-compose exec php cp /var/www/event-app/.env.example /var/www/event-app/.e
 docker-compose exec php php /var/www/event-app/artisan key:generate
 docker-compose exec php php /var/www/event-app/artisan migrate --force
 
-# 5. Assets frontend (optionnel, build via Vite)
+# 5. Assets frontend (build via Vite)
+# Note : npm doit être installé dans le conteneur PHP.
+# Si npm est absent, installez-le d'abord :
+#   docker-compose exec php apk add --no-cache npm
+# Sinon, construisez les assets depuis l'hôte (Node.js requis en local) :
+#   cd laravel && npm install && npm run build && cd ..
+#   cd event-app && npm install && npm run build && cd ..
 docker-compose exec php npm install --working-dir=/var/www/laravel
 docker-compose exec php npm run build --working-dir=/var/www/laravel
 docker-compose exec php npm install --working-dir=/var/www/event-app
 docker-compose exec php npm run build --working-dir=/var/www/event-app
 ```
+
+> **⚠️ Sans build Vite**, les pages renverront une **erreur HTTP 500** (assets manquants).  
+> Assurez-vous que l'étape 5 est exécutée avant d'accéder aux applications.
 
 ## Accès
 
@@ -100,3 +111,7 @@ docker-compose exec php php /var/www/event-app/vendor/bin/pest
 - Journalisation des accès aux routes sensibles
 - Rétention des logs : 6 mois (purge automatique quotidienne)
 - Pas de debug en production
+
+## Objectifs SMART
+
+Voir [`OBJECTIVES.md`](documentation/OBJECTIVES.md) pour la liste complète des objectifs SMART définis suite à l'évaluation du groupe G3 (note 8,5/20).
