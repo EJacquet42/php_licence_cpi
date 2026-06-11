@@ -2,64 +2,49 @@
 
 ## Objectif
 
-Ce document permet de prouver le pilotage du projet à l'aide d'indicateurs simples : avancement prévu/réalisé, état des livrables, suivi des tests et traitement des risques.
+Ce document suit l'avancement du projet à partir d'indicateurs simples. Le retour d'évaluation précédent indiquait que les statuts n'étaient pas renseignés. Cette version ajoute les colonnes de suivi nécessaires.
 
-## Indicateurs retenus
+## Indicateurs globaux
 
-| ID | Indicateur | Méthode de calcul | Objectif | Fréquence |
-|---|---|---|---|---|
-| I1 | Avancement global | Livrables terminés / livrables prévus | 100 % avant livraison | Quotidien |
-| I2 | Couverture des événements journalisés | Événements loggés / événements prévus | 100 % | Quotidien |
-| I3 | Validation fonctionnelle | Tests validés / tests prévus | 100 % | Fin de développement |
-| I4 | Qualité du code | Tests automatisés passants + PHPStan | Aucun échec bloquant | À chaque fin de journée |
-| I5 | Documentation | Documents présents / documents attendus | 100 % | Quotidien |
-| I6 | Risques suivis | Risques traités / risques ouverts | 100 % des risques critiques traités | Quotidien |
+| ID | Indicateur | Objectif | Réalisé au 12/06 | Statut | Commentaire / preuve |
+|---|---|---:|---:|---|---|
+| I1 | Événements journalisés | 6 événements | À vérifier dans le code | À vérifier | Création compte, connexion, déconnexion, accès quiz, rendu quiz, erreurs |
+| I2 | Scénarios de validation documentés | 11 scénarios | 11 scénarios | Réalisé | `documentation/tests_validation.md` |
+| I3 | Scénarios de validation exécutés | 11 scénarios | À renseigner | À compléter | Remplir les statuts dans `tests_validation.md` |
+| I4 | Critères de performance définis | 7 critères | 7 critères | Réalisé | `documentation/critere_performance.md` |
+| I5 | Mesures de performance valides | 7 mesures | 0 tant que HTTP 500 | Non conforme | Refaire les mesures après correction Vite |
+| I6 | PHPStan | 0 erreur | 0 erreur | Réalisé | Retour d'évaluation : PHPStan niveau 8, 0 erreur |
+| I7 | Tests unitaires | 100 % attendus | Partiel | Partiel | Échecs liés à Vite, APP_KEY, Breeze |
+| I8 | Documentation utilisateur | Guide + captures | Guide sans captures | Partiel | Ajouter captures réelles dans `doc/captures/` |
+| I9 | Sécurité configuration | `APP_DEBUG=false`, dashboard protégé | À corriger | Non conforme | Modifier `.env` et routes event-app |
+| I10 | Conformité ANSSI | Source citée + mapping | Mapping présent | Partiel | Source ajoutée dans `conformite_anssi.md` |
 
-## Tableau de suivi prévu/réalisé
+## Suivi prévu / réalisé
 
-| Date | Livrable prévu | Responsable | Statut | Réalisé | Écart / commentaire |
+| Date | Tâche prévue | Responsable | Réalisé | Écart | Statut |
 |---|---|---|---|---|---|
-| Lundi 8 juin | Analyse de l'existant et événements à logger | Équipe | Terminé | Contexte, besoin, événements critiques | Aucun écart majeur |
-| Mardi 9 juin | Logs inscription, connexion, déconnexion, quiz | Esteban / Edouard | Terminé | Logs applicatifs ajoutés | Vérifier le nommage homogène des types |
-| Mercredi 10 juin | Centralisation rsyslog et dashboard | Léo / Esteban | Terminé partiel | Docker + rsyslog + event-app | Ajouter preuves de réception et captures |
-| Jeudi 11 juin | Documentation, tests, preuves | Équipe | En cours | Documentation enrichie | Ajouter validation et performances |
-| Vendredi 12 juin | Relecture et livraison | Équipe | À vérifier | Dépôt final | Vérifier README, tests, PHPStan |
+| 08/06 matin | Lancement du projet et analyse du besoin | Équipe | Projet initialisé | Aucun | Réalisé |
+| 08/06 après-midi | Mise en place de l'application questionnaire | Équipe | Application Laravel livrée | À vérifier selon commits | Réalisé |
+| 09/06 matin | Ajout journalisation auth et quiz | Esteban / Edouard | Logs présents à vérifier | Preuves à associer | Partiel |
+| 09/06 après-midi | Mise en place rsyslog / Docker | Léo | Infrastructure Docker présente | Aucun majeur | Réalisé |
+| 10/06 matin | Dashboard de logs | Équipe | Dashboard présent | Auth à ajouter | Partiel |
+| 10/06 après-midi | Documentation technique | Équipe | Installation, analyse, ANSSI | Certaines preuves manquantes | Partiel |
+| 11/06 matin | Tests unitaires et PHPStan | Équipe | PHPStan OK, tests partiels | Échecs Pest restants | Partiel |
+| 11/06 après-midi | Validation et performances | Équipe | Protocoles présents | Exécution non complète, HTTP 500 | Non conforme |
+| 12/06 matin | Livraison finale | Équipe | À valider | Derniers correctifs à appliquer | À faire |
 
-## Suivi des livrables
+## Actions restantes prioritaires
 
-| Livrable | Fichier attendu | Statut | Commentaire |
+| Priorité | Action | Responsable conseillé | Preuve attendue |
 |---|---|---|---|
-| Contexte et besoin | `documentation/context_client.md` | Terminé | Spécifique au projet rsyslog |
-| Objectifs SMART | `documentation/OBJECTIVES.md` | Terminé | Ajouter lien vers conformité ANSSI |
-| Analyse ANSSI | `documentation/conformite_anssi.md` | À ajouter | Mapping recommandation → preuve |
-| Planning | `documentation/planning.md` | À améliorer | Ajouter réalisé, statut et écarts |
-| Gestion des risques | `documentation/gestion_erreur.md` | À améliorer | Ajouter criticité et suivi |
-| Indicateurs projet | `documentation/indicateurs_suivi.md` | À ajouter | Présent document |
-| Tests validation | `tests/validation.md` | À ajouter | Use cases rejouables |
-| Performance | `documentation/performance.md` | À ajouter / compléter | Protocole + résultats |
-| Guide utilisateur | `doc/utilisation.md` | À ajouter | Avec captures ou emplacements de captures |
-| Installation | `documentation/installation.md` | À ajouter | Procédure dédiée et vérifiable |
-
-## Suivi des tests
-
-| Type de test | Nombre prévu | Nombre réalisé | Statut | Commentaire |
-|---|---:|---:|---|---|
-| Tests manuels use cases | 11 | À renseigner | En cours | Voir `tests/validation.md` |
-| Tests unitaires / feature | 48 | À renseigner | En cours | Corriger tests Breeze/Vite si nécessaire |
-| PHPStan Laravel | 1 | À renseigner | En cours | Configuration PHPStan 2.x fournie |
-| PHPStan event-app | 1 | À renseigner | En cours | Configuration PHPStan 2.x fournie |
-| Mesures performance | 8 | À renseigner | En cours | Voir `documentation/performance.md` |
-
-## Synthèse d'avancement
-
-| Catégorie | Avancement estimé | Commentaire |
-|---|---:|---|
-| Fonctionnalités | 85 % | Les fonctions principales existent, corrections à vérifier |
-| Logs et rsyslog | 80 % | Centralisation présente, preuves à compléter |
-| Documentation | 70 % | Documents ajoutés, captures à intégrer |
-| Validation | 40 % | Scénarios fournis, résultats à renseigner |
-| Qualité code | 60 % | Tests métier présents, PHPStan à corriger |
+| 1 | Corriger le HTTP 500 Vite | Développeur Docker / Laravel | `curl -I` avec HTTP 200/302 |
+| 2 | Refaire les mesures de performance | Équipe | `performance_mesures.csv` rempli avec vraies valeurs |
+| 3 | Exécuter les tests de validation | Équipe | `tests_validation.md` avec statuts et preuves |
+| 4 | Ajouter les captures utilisateur | Équipe | PNG dans `doc/captures/` |
+| 5 | Protéger event-app par authentification | Développeur Laravel | Route avec middleware `auth` |
+| 6 | Corriger `APP_DEBUG=true` | Équipe | `.env` en `APP_DEBUG=false` |
+| 7 | Ajouter prompts IA bruts | Équipe | `doc/echanges_ia.md` complété |
 
 ## Conclusion
 
-Ce suivi permet de montrer que le projet n'est pas seulement développé, mais également piloté. Les indicateurs doivent être mis à jour avec les résultats réels avant la livraison finale.
+Les indicateurs montrent que le projet a progressé sur la documentation, PHPStan et les diagrammes. Les principaux écarts restants concernent la preuve d'exécution : application accessible sans HTTP 500, mesures de performance reproductibles, tests de validation réellement exécutés et captures d'écran réelles.

@@ -1,9 +1,7 @@
-ID,Action,Mesure 1,Mesure 2,Mesure 3,Moyenne,Objectif,Statut
-PERF-01,Chargement /login,0.42,0.44,0.41,0.42,<2s,Conforme
-PERF-02,Chargement /register,0.45,0.47,0.44,0.45,<2s,Conforme
-PERF-03,Connexion utilisateur,0.71,0.69,0.73,0.71,<2s,Conforme
-PERF-04,Chargement /dashboard,0.58,0.62,0.59,0.60,<2s,Conforme
-PERF-05,Soumission quiz,0.91,0.88,0.94,0.91,<3s,Conforme
-PERF-06,Reception log rsyslog,0.80,0.70,0.90,0.80,<1s,Conforme
-PERF-07,Chargement /event,0.76,0.79,0.75,0.77,<3s,Conforme
-PERF-08,Filtrage logs,0.83,0.85,0.81,0.83,<3s,Conforme
+date,application,action,url_ou_action,code_http,temps_secondes,objectif_secondes,statut,preuve,commentaire
+2026-06-11,questionnaire,verification_initiale,http://localhost:8080,500,,2,Non conforme,verifs/20260611-1200_smoke.txt,"Mesure non exploitable tant que Vite n'est pas buildé"
+2026-06-11,event-app,verification_initiale,http://localhost:8081,500,,3,Non conforme,verifs/20260611-1200_smoke.txt,"Mesure non exploitable tant que l'application ne répond pas correctement"
+A_RENSEIGNER,questionnaire,page_login,http://localhost:8080,A_RENSEIGNER,A_RENSEIGNER,2,A_RENSEIGNER,A_RENSEIGNER,"À remplir après correction HTTP 500"
+A_RENSEIGNER,event-app,dashboard_logs,http://localhost:8081,A_RENSEIGNER,A_RENSEIGNER,3,A_RENSEIGNER,A_RENSEIGNER,"À remplir après correction HTTP 500"
+A_RENSEIGNER,questionnaire,connexion_utilisateur,formulaire_login,A_RENSEIGNER,A_RENSEIGNER,2,A_RENSEIGNER,A_RENSEIGNER,"Mesure via onglet Network"
+A_RENSEIGNER,questionnaire,rendu_quiz,formulaire_quiz,A_RENSEIGNER,A_RENSEIGNER,3,A_RENSEIGNER,A_RENSEIGNER,"Mesure via onglet Network + preuve log"

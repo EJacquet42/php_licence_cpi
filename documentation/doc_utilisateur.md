@@ -1,118 +1,150 @@
-# Documentation utilisateur — Questionnaire rsyslog et dashboard logs
+# Documentation utilisateur
 
 ## Objectif
 
-Ce guide explique comment utiliser le site de questionnaire rsyslog et le dashboard de consultation des logs.
-Il est destiné à un utilisateur étudiant, à un administrateur ou à un évaluateur.
+Cette documentation décrit le parcours utilisateur de l'application de questionnaire rsyslog et du dashboard de consultation des logs.
 
-## Accès aux applications
+Les captures doivent être ajoutées dans le dossier `doc/captures/`. Le précédent retour d'évaluation indiquait que les captures étaient absentes. Ce document référence donc les captures attendues. Elles doivent être produites à partir de l'application réelle, une fois le problème HTTP 500 corrigé.
 
-| Application | URL | Public concerné |
-|---|---|---|
-| Questionnaire rsyslog | `http://localhost:8080` | Étudiants / utilisateurs |
-| Dashboard logs | `http://localhost:8081/event` | Évaluateur / administrateur |
+## 1. Accéder au site
 
-## 1. Créer un compte
+L'utilisateur accède à l'application principale depuis l'adresse :
 
-1. Ouvrir `http://localhost:8080/register`.
-2. Renseigner le nom, l'adresse e-mail et le mot de passe.
-3. Valider l'inscription.
-4. Vérifier que l'utilisateur est redirigé vers l'application.
+```text
+http://localhost:8080
+```
 
-Résultat attendu : le compte est créé et un log d'inscription est généré.
+Capture attendue :
 
-Capture à ajouter : `doc/captures/register.png`.
+```text
+doc/captures/01_accueil_ou_login.png
+```
 
-## 2. Se connecter
+## 2. Créer un compte
 
-1. Ouvrir `http://localhost:8080/login`.
-2. Saisir l'adresse e-mail et le mot de passe.
-3. Cliquer sur le bouton de connexion.
+L'utilisateur ouvre la page d'inscription, saisit ses informations, puis valide le formulaire.
 
-Résultat attendu : l'utilisateur arrive sur le questionnaire.
+Résultat attendu :
 
-Capture à ajouter : `doc/captures/login.png`.
+- le compte est créé ;
+- l'utilisateur peut accéder à l'application ;
+- un log de création de compte est généré.
 
-## 3. Répondre au questionnaire
+Capture attendue :
 
-1. Ouvrir la page `/dashboard` après connexion.
-2. Lire chaque question du questionnaire rsyslog.
-3. Sélectionner les réponses.
-4. Cliquer sur le bouton de correction ou de soumission selon l'interface.
+```text
+doc/captures/02_creation_compte.png
+```
 
-Résultat attendu : le score est calculé et la soumission est enregistrée.
+## 3. Se connecter
 
-Capture à ajouter : `doc/captures/questionnaire.png`.
+L'utilisateur saisit son adresse e-mail et son mot de passe sur la page de connexion.
 
-## 4. Consulter son résultat
+Résultat attendu :
 
-Après la soumission, l'application affiche le résultat du questionnaire.
+- l'utilisateur est authentifié ;
+- il est redirigé vers l'espace principal ;
+- un log de connexion est généré.
 
-Les informations attendues sont :
+Capture attendue :
 
-- score obtenu ;
-- correction ou indication des réponses ;
-- message de résultat ;
-- log associé à la soumission.
+```text
+doc/captures/03_connexion.png
+```
 
-Capture à ajouter : `doc/captures/resultat_quiz.png`.
+## 4. Répondre au questionnaire
 
-## 5. Se déconnecter
+Une fois connecté, l'utilisateur accède au questionnaire rsyslog et sélectionne ses réponses.
 
-1. Cliquer sur le bouton de déconnexion.
-2. Vérifier que la session est fermée.
-3. Vérifier que l'utilisateur revient sur la page de connexion.
+Résultat attendu :
 
-Résultat attendu : un log de déconnexion est généré.
+- les questions sont affichées ;
+- l'utilisateur peut sélectionner une réponse ;
+- le formulaire peut être soumis.
 
-Capture à ajouter : `doc/captures/logout.png`.
+Capture attendue :
 
-## 6. Consulter les logs dans le dashboard
+```text
+doc/captures/04_questionnaire.png
+```
 
-1. Ouvrir `http://localhost:8081/event`.
-2. Observer la liste des événements.
-3. Utiliser les filtres disponibles : type, priorité, date ou utilisateur selon l'interface.
-4. Vérifier la présence des événements liés au parcours utilisateur.
+## 5. Rendre le quiz
 
-Logs attendus après un parcours complet :
+L'utilisateur valide ses réponses en cliquant sur le bouton de soumission.
 
-| Action | Log attendu |
+Résultat attendu :
+
+- les réponses sont enregistrées ;
+- le score ou le résultat est affiché ;
+- un log de rendu du quiz est généré.
+
+Capture attendue :
+
+```text
+doc/captures/05_resultat_quiz.png
+```
+
+## 6. Se déconnecter
+
+L'utilisateur clique sur le bouton de déconnexion.
+
+Résultat attendu :
+
+- la session est fermée ;
+- l'utilisateur revient à une page publique ou de connexion ;
+- un log de déconnexion est généré.
+
+Capture attendue :
+
+```text
+doc/captures/06_deconnexion.png
+```
+
+## 7. Consulter les logs
+
+L'utilisateur autorisé accède au dashboard de consultation des logs depuis :
+
+```text
+http://localhost:8081
+```
+
+Résultat attendu :
+
+- les logs sont visibles ;
+- les événements peuvent être consultés ;
+- l'accès au dashboard est protégé si l'utilisateur n'est pas authentifié.
+
+Capture attendue :
+
+```text
+doc/captures/07_dashboard_logs.png
+```
+
+## 8. Vérifier la sécurité des logs
+
+Les logs doivent être consultables sans exposer de données sensibles inutiles.
+
+Les mots de passe ne doivent jamais apparaître dans les journaux.
+
+Capture ou preuve attendue :
+
+```text
+doc/captures/08_logs_sans_mot_de_passe.png
+```
+
+## Liste de contrôle avant rendu
+
+| Élément | Statut |
 |---|---|
-| Inscription | `auth.register` |
-| Connexion | `auth.login` |
-| Accès questionnaire | `route.sensitive` ou équivalent |
-| Soumission quiz | `quiz.submit` |
-| Déconnexion | `auth.logout` |
-
-Capture à ajouter : `doc/captures/dashboard_logs.png`.
-
-## 7. Générer un log manuel si la page existe
-
-Si la page `/generator` est disponible :
-
-1. Se connecter.
-2. Ouvrir `http://localhost:8080/generator`.
-3. Générer un log de test.
-4. Vérifier sa présence dans le dashboard de logs.
-
-Capture à ajouter : `doc/captures/generator.png`.
-
-## 8. Comprendre les niveaux de logs
-
-| Niveau | Signification | Exemple |
-|---|---|---|
-| `info` | Action normale | Connexion réussie |
-| `warning` | Action anormale mais non bloquante | Connexion échouée |
-| `error` | Problème technique | Échec d'envoi vers rsyslog |
-
-## 9. Bonnes pratiques utilisateur
-
-- Ne jamais partager son mot de passe.
-- Se déconnecter après utilisation sur un poste partagé.
-- Signaler toute erreur ou absence de log lors d'une action importante.
-- Vérifier que le quiz est bien soumis avant de quitter la page.
+| Capture accueil/login ajoutée | À vérifier |
+| Capture création compte ajoutée | À vérifier |
+| Capture connexion ajoutée | À vérifier |
+| Capture questionnaire ajoutée | À vérifier |
+| Capture résultat quiz ajoutée | À vérifier |
+| Capture déconnexion ajoutée | À vérifier |
+| Capture dashboard logs ajoutée | À vérifier |
+| Capture absence de mot de passe dans les logs ajoutée | À vérifier |
 
 ## Conclusion
 
-Le parcours utilisateur principal est le suivant : inscription, connexion, réponse au questionnaire, soumission, consultation des logs, déconnexion.
-Chaque étape importante doit être accompagnée d'un log afin de garantir la traçabilité du site.
+Cette documentation doit être accompagnée de captures réelles. Sans ces captures, elle décrit le fonctionnement attendu mais ne constitue pas une preuve complète d'utilisation.
