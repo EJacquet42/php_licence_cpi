@@ -2,114 +2,98 @@
 
 ## Objectif
 
-Ce document définit un protocole de mesure simple permettant de vérifier que l'ajout du système de journalisation ne dégrade pas l'utilisation du site. Il répond au besoin de disposer de critères chiffrés, d'une méthode de mesure et de résultats conservés dans le dépôt.
+Ce document définit le protocole de mesure des performances de l'application de questionnaire rsyslog et du dashboard de logs.
 
-Les performances mesurées concernent :
+Le précédent retour d'évaluation signale que des mesures indiquées comme `Conforme` étaient contredites par un retour HTTP 500. Ce document distingue donc clairement :
 
-- le chargement des pages principales ;
-- la connexion utilisateur ;
-- la soumission du questionnaire ;
-- la génération et la centralisation des logs ;
-- l'affichage du dashboard des logs.
+- l'état constaté avant correction ;
+- les critères attendus ;
+- le protocole reproductible ;
+- les mesures à refaire après correction du problème Vite / HTTP 500.
 
 ## Environnement de mesure
 
 | Élément | Valeur |
 |---|---|
-| Machine de test | Poste développeur / machine d'évaluation |
-| OS | Linux ou Windows avec Docker Desktop |
-| Infrastructure | Docker Compose |
-| Application questionnaire | `http://localhost:8080` |
-| Dashboard logs | `http://localhost:8081` |
-| Service logs | rsyslog TCP/UDP 514 |
-| Navigateur | Chrome, Firefox ou Edge |
-| Outils de mesure | `curl`, DevTools Network, commandes Docker |
+| Branche évaluée | `main` |
+| Application principale | Laravel questionnaire |
+| Application logs | event-app |
+| Conteneurisation | Docker Compose |
+| Ports applicatifs | 8080 pour le questionnaire, 8081 pour le dashboard logs |
+| Service de journalisation | rsyslog |
+| Outil de mesure | `curl` + navigateur, onglet Network |
 
-## Protocole général
+## Critères attendus
 
-Chaque mesure est réalisée trois fois. Le résultat retenu est la moyenne des trois mesures.
+| Action mesurée | Objectif attendu |
+|---|---:|
+| Chargement de la page de connexion | < 2 s |
+| Connexion utilisateur | < 2 s |
+| Chargement du questionnaire | < 2 s |
+| Soumission du questionnaire | < 3 s |
+| Génération d'un log après action | < 1 s |
+| Consultation du dashboard logs | < 3 s |
+| Consultation de l'API logs | < 2 s |
 
-Exemple avec `curl` :
+## Protocole de mesure reproductible
 
-```bash
-curl -o /dev/null -s -w "code=%{http_code} total=%{time_total}s\n" http://localhost:8080/login
-```
+Les mesures doivent être faites uniquement lorsque les applications répondent sans erreur HTTP 500.
 
-Pour les actions nécessitant une session authentifiée, la mesure peut être effectuée avec l'onglet **Network** du navigateur. La valeur retenue est le temps total de la requête principale.
-
-## Critères de performance retenus
-
-| ID | Critère | Objectif attendu | Méthode de mesure |
-|---|---|---:|---|
-| PERF-01 | Chargement de `/login` | < 2 s | `curl` ou DevTools |
-| PERF-02 | Chargement de `/register` | < 2 s | `curl` ou DevTools |
-| PERF-03 | Connexion utilisateur | < 2 s | DevTools Network |
-| PERF-04 | Chargement du questionnaire `/dashboard` | < 2 s | DevTools Network |
-| PERF-05 | Soumission du questionnaire | < 3 s | DevTools Network |
-| PERF-06 | Réception du log par rsyslog | < 1 s après action | `docker compose logs rsyslog` |
-| PERF-07 | Affichage de `/event` sur event-app | < 3 s | `curl` ou DevTools |
-| PERF-08 | Filtrage des logs | < 3 s | DevTools Network |
-
-## Commandes de mesure conseillées
-
-### Mesure des pages publiques
+### 1. Démarrer l'environnement
 
 ```bash
-curl -o /dev/null -s -w "login: code=%{http_code} total=%{time_total}s\n" http://localhost:8080/login
-curl -o /dev/null -s -w "register: code=%{http_code} total=%{time_total}s\n" http://localhost:8080/register
-curl -o /dev/null -s -w "event: code=%{http_code} total=%{time_total}s\n" http://localhost:8081/event
+docker compose up -d --build
 ```
 
-### Vérification de la réception rsyslog
+### 2. Vérifier que les conteneurs sont démarrés
 
 ```bash
-# Terminal 1
-docker compose logs -f rsyslog
-
-# Terminal 2
-# Réaliser une action journalisée : connexion, soumission quiz, déconnexion.
+docker compose ps
 ```
 
-### Mesure avec le navigateur
+### 3. Vérifier les codes HTTP
 
-1. Ouvrir les DevTools.
-2. Aller dans l'onglet **Network**.
-3. Cocher **Disable cache**.
-4. Réaliser l'action à mesurer.
-5. Noter le temps total de la requête principale.
-6. Refaire l'action trois fois.
+```bash
+curl -I http://localhost:8080
+curl -I http://localhost:8081
+```
 
-## Résultats des mesures
+Les mesures de performance ne sont considérées comme valides que si les pages testées répondent avec un code HTTP 200 ou 302 selon le cas.
 
-> Les valeurs ci-dessous doivent être remplacées par les mesures réellement relevées sur votre poste. Elles servent de modèle de présentation.
+### 4. Mesurer le temps de réponse
 
-| ID | Action mesurée | Mesure 1 | Mesure 2 | Mesure 3 | Moyenne | Objectif | Statut |
-|---|---|---:|---:|---:|---:|---:|---|
-| PERF-01 | Chargement `/login` | 0,42 s | 0,44 s | 0,41 s | 0,42 s | < 2 s | Conforme |
-| PERF-02 | Chargement `/register` | 0,45 s | 0,47 s | 0,44 s | 0,45 s | < 2 s | Conforme |
-| PERF-03 | Connexion utilisateur | 0,71 s | 0,69 s | 0,73 s | 0,71 s | < 2 s | Conforme |
-| PERF-04 | Chargement `/dashboard` | 0,58 s | 0,62 s | 0,59 s | 0,60 s | < 2 s | Conforme |
-| PERF-05 | Soumission quiz | 0,91 s | 0,88 s | 0,94 s | 0,91 s | < 3 s | Conforme |
-| PERF-06 | Réception log rsyslog | < 1 s | < 1 s | < 1 s | < 1 s | < 1 s | Conforme |
-| PERF-07 | Chargement `/event` | 0,76 s | 0,79 s | 0,75 s | 0,77 s | < 3 s | Conforme |
-| PERF-08 | Filtrage logs | 0,83 s | 0,85 s | 0,81 s | 0,83 s | < 3 s | Conforme |
+```bash
+curl -o /dev/null -s -w "code=%{http_code};time=%{time_total}s\n" http://localhost:8080
+curl -o /dev/null -s -w "code=%{http_code};time=%{time_total}s\n" http://localhost:8081
+```
 
-## Analyse des résultats
+### 5. Mesurer les pages nécessitant une session
 
-Les mesures montrent que les pages principales restent sous les seuils fixés. La connexion, le chargement du questionnaire et la soumission du quiz restent utilisables dans un contexte de développement local.
+Pour les pages nécessitant une authentification, les mesures sont réalisées depuis le navigateur avec l'onglet **Network**. La mesure retenue est le temps total de chargement de la requête principale.
 
-La génération et la transmission des logs ne créent pas de ralentissement notable pour l'utilisateur. La réception rsyslog est considérée comme conforme lorsque le log apparaît dans les journaux du conteneur ou dans les fichiers archivés moins d'une seconde après l'action.
+## Résultat constaté avant correction
 
-## Limites
+Le retour d'évaluation indique que les endpoints mesurés renvoyaient encore une erreur HTTP 500, probablement liée à Vite non buildé. Dans cet état, les mesures ne sont pas validables.
 
-Ces mesures sont réalisées dans un environnement local de développement. Elles ne remplacent pas un test de charge complet, mais elles permettent de prouver que le projet dispose d'un protocole de mesure et de premiers résultats vérifiables.
+| Élément testé | Résultat constaté | Statut |
+|---|---|---|
+| Application questionnaire | HTTP 500 | Non conforme |
+| Dashboard logs | HTTP 500 ou non validé | Non conforme |
+| Mesures précédentes indiquées comme conformes | Contredites par le HTTP 500 | Non retenues |
 
-Pour une évaluation plus poussée, il serait possible d'ajouter :
+## Mesures à renseigner après correction
 
-- un test avec 100, 1 000 puis 10 000 logs ;
-- un test de charge avec ApacheBench, k6 ou JMeter ;
-- une mesure de consommation CPU/RAM des conteneurs.
+Après correction du build Vite, remplir le tableau suivant avec les vraies valeurs obtenues.
+
+| Date | Action mesurée | URL ou action | Code HTTP | Temps mesuré | Objectif | Statut | Preuve |
+|---|---|---|---:|---:|---:|---|---|
+| À renseigner | Page accueil / login | `http://localhost:8080` | À renseigner | À renseigner | < 2 s | À renseigner | Capture ou sortie curl |
+| À renseigner | Dashboard logs | `http://localhost:8081` | À renseigner | À renseigner | < 3 s | À renseigner | Capture ou sortie curl |
+| À renseigner | Connexion | Formulaire login | À renseigner | À renseigner | < 2 s | À renseigner | Capture Network |
+| À renseigner | Chargement questionnaire | Page quiz | À renseigner | À renseigner | < 2 s | À renseigner | Capture Network |
+| À renseigner | Soumission quiz | Formulaire quiz | À renseigner | À renseigner | < 3 s | À renseigner | Capture Network + log généré |
+| À renseigner | Consultation API logs | Endpoint API logs | À renseigner | À renseigner | < 2 s | À renseigner | Sortie curl |
 
 ## Conclusion
 
-Les critères de performance sont définis, mesurables et associés à un protocole reproductible. Les résultats doivent être complétés avec les valeurs réellement obtenues lors de l'exécution du projet afin de servir de preuve dans le dépôt.
+Les performances ne doivent pas être déclarées conformes tant que les endpoints ne répondent pas correctement. La priorité est donc de corriger le problème Vite / HTTP 500, puis de rejouer le protocole ci-dessus et d'ajouter les preuves dans `documentation/preuves/`.
