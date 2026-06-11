@@ -3,14 +3,10 @@ includes:
 
 parameters:
 
-    level: 6
+    level: 8
 
     paths:
         - app/
-
-    checkMissingIterableValueType: false
-
-    checkGenericClassInNonGenericObjectType: false
 
     databaseMigrationsPath:
         - database/migrations/

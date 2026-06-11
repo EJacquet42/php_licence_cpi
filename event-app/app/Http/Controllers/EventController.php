@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class EventController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = Log::query();
 
@@ -54,7 +55,7 @@ class EventController extends Controller
 
         $avgQuiz = Log::where('type', 'quiz')
             ->selectRaw('AVG(score * 100.0 / NULLIF(total, 0)) as avg_percentage')
-            ->first()->avg_percentage;
+            ->value('avg_percentage');
 
         $avgScore20 = Log::where('type', 'quiz')
             ->whereNotNull('score')
@@ -73,7 +74,7 @@ class EventController extends Controller
         ]);
     }
 
-    public function questionsStats()
+    public function questionsStats(): View
     {
         $quizLogs = Log::where('type', 'question')
             ->whereNotNull('questions_data')
@@ -82,8 +83,9 @@ class EventController extends Controller
         $questions = [];
 
         foreach ($quizLogs as $log) {
+            /** @var array<string, mixed>|null $data */
             $data = $log->questions_data;
-            if (!isset($data['question_index'])) {
+            if ($data === null || !isset($data['question_index'])) {
                 continue;
             }
             $idx = $data['question_index'];
@@ -93,6 +95,7 @@ class EventController extends Controller
                     'question' => $data['question'] ?? "Question {$idx}",
                     'total_answers' => 0,
                     'correct_count' => 0,
+                    'percentage' => 0,
                 ];
             }
             $questions[$idx]['total_answers']++;
@@ -101,12 +104,12 @@ class EventController extends Controller
             }
         }
 
-        foreach ($questions as &$q) {
-            $q['percentage'] = $q['total_answers'] > 0
-                ? round(($q['correct_count'] / $q['total_answers']) * 100, 1)
-                : 0;
+        if ($questions !== [] && $quizLogs->isNotEmpty()) {
+            foreach ($questions as &$q) {
+                $q['percentage'] = round(($q['correct_count'] / $q['total_answers']) * 100, 1);
+            }
+            unset($q);
         }
-        unset($q);
 
         $best = null;
         $worst = null;

@@ -3,17 +3,13 @@ includes:
 
 parameters:
 
-    level: 6
+    level: 8
 
     paths:
         - app/
 
     excludePaths:
         - app/Http/Controllers/Auth/*
-
-    checkMissingIterableValueType: false
-
-    checkGenericClassInNonGenericObjectType: false
 
     databaseMigrationsPath:
         - database/migrations/

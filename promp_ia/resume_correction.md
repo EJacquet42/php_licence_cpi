@@ -128,17 +128,76 @@ docker exec -w /var/www/event-app php php artisan test
 
 Les seuls échecs restants sont ceux des tests d'authentification scaffolding Laravel (`Class "App\Models\User" not found`) et de la page d'accueil (`/` redirect 302) — non liés à la correction.
 
-### Analyse PHPStan (WIP)
+---
+
+## 6. Passage au niveau PHPStan 8
+
+Passage du niveau 6 au niveau 8 dans les deux projets.
+
+### Corrections appliquées
+
+#### Projet `event-app/` (28 erreurs → 0)
+
+| Fichier | Corrections |
+|---|---|
+| `Console/Commands/ImportRsyslogFiles.php` | Gestion de `glob()` retournant `false` ; suppression du type `?array` (jamais null) ; ajout `@return array<string, mixed>` ; match exhaustif sans branche `default` |
+| `Http/Controllers/EventController.php` | Types de retour `: View` ; `value()` au lieu de `first()->prop` pour `avg_percentage` ; `@var array<string, mixed>\|null` pour `questions_data` ; initialisation `percentage => 0` dans les questions |
+| `Http/Controllers/LogApiController.php` | Type de retour `: JsonResponse` |
+| `Http/Requests/ProfileUpdateRequest.php` | `$this->user()?->id` au lieu de `$this->user()->id` |
+| `Models/Log.php` | `@use HasFactory<\Database\Factories\LogFactory>` |
+| `Providers/AppServiceProvider.php` | `getAuthIdentifier()` au lieu de `->id` sur `Authenticatable` |
+| `Services/RsyslogService.php` | `@var array<string, int>` sur les maps ; `created_at?->format()` |
+| `View/Components/GuestLayout.php` | `@phpstan-ignore argument.type` sur `view()` |
+| Création `Models/User.php` | Résout l'erreur `class.notFound` |
+
+#### Projet `laravel/` (26 erreurs → 0)
+
+| Fichier | Corrections |
+|---|---|
+| `Http/Controllers/DashboardController.php` | Type `: JsonResponse` ; gestion null `$request->user()` |
+| `Http/Controllers/EventController.php` | Type `: View` |
+| `Http/Controllers/GeneratorController.php` | Types `: View` et `: RedirectResponse` |
+| `Http/Controllers/LogApiController.php` | Type `: JsonResponse` |
+| `Http/Controllers/ProfileController.php` | Guards null sur `$request->user()` ; `mixed $user` sur `logAccount()` |
+| `Http/Requests/ProfileUpdateRequest.php` | `$this->user()?->id` |
+| `Models/Log.php` | `@return BelongsTo<User, $this>` |
+| `Providers/AppServiceProvider.php` | `getEmailForPasswordReset()` au lieu de `->email` ; `mixed $user` |
+| `Services/RsyslogService.php` | `@var array<string, int>` sur les maps ; `created_at?->format/toIso8601String()` |
+
+### Résultat
 
 ```bash
-docker exec -w /var/www/laravel php composer run phpstan
-docker exec -w /var/www/event-app php composer run phpstan
+docker exec -w /var/www/laravel php php vendor/bin/phpstan analyse --memory-limit=2G
+# [OK] No errors
+
+docker exec -w /var/www/event-app php php vendor/bin/phpstan analyse --memory-limit=2G
+# [OK] No errors
 ```
 
 ---
 
-## 6. Fichiers modifiés / créés (complément)
+## 7. Fichiers modifiés / créés (complément)
 
 ### Modifiés
 - `laravel/tests/Feature/DashboardSubmitTest.php` — utilisation de `assertSessionHasErrors`
 - `event-app/tests/Feature/EventControllerTest.php` — correction des dates de filtre
+- `laravel/app/Http/Controllers/DashboardController.php`
+- `laravel/app/Http/Controllers/EventController.php`
+- `laravel/app/Http/Controllers/GeneratorController.php`
+- `laravel/app/Http/Controllers/LogApiController.php`
+- `laravel/app/Http/Controllers/ProfileController.php`
+- `laravel/app/Http/Requests/ProfileUpdateRequest.php`
+- `laravel/app/Models/Log.php`
+- `laravel/app/Providers/AppServiceProvider.php`
+- `laravel/app/Services/RsyslogService.php`
+- `event-app/app/Console/Commands/ImportRsyslogFiles.php`
+- `event-app/app/Http/Controllers/EventController.php`
+- `event-app/app/Http/Controllers/LogApiController.php`
+- `event-app/app/Http/Requests/ProfileUpdateRequest.php`
+- `event-app/app/Models/Log.php`
+- `event-app/app/Providers/AppServiceProvider.php`
+- `event-app/app/Services/RsyslogService.php`
+- `event-app/app/View/Components/GuestLayout.php`
+
+### Créés
+- `event-app/app/Models/User.php`

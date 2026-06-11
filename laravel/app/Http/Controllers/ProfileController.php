@@ -29,6 +29,11 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
+
+        if ($user === null) {
+            return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        }
+
         $emailChanged = $user->isDirty('email');
 
         $user->fill($request->validated());
@@ -57,6 +62,10 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        if ($user === null) {
+            return Redirect::to('/');
+        }
+
         $this->logAccount('alert', "Compte utilisateur supprimé — {$user->email}", $user);
 
         Auth::logout();
@@ -69,7 +78,7 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
-    private function logAccount(string $priority, string $message, $user): void
+    private function logAccount(string $priority, string $message, mixed $user): void
     {
         $log = Log::create([
             'user_id' => $user->id,

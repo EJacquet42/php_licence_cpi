@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Log;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LogApiController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
             'message' => 'required|string',

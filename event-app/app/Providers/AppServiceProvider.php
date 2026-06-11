@@ -22,15 +22,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(function (Registered $event): void {
-            $this->logAuth('info', "Nouvel utilisateur inscrit", $event->user->id);
+            $this->logAuth('info', "Nouvel utilisateur inscrit", $event->user->getAuthIdentifier());
         });
 
         Event::listen(function (Login $event): void {
-            $this->logAuth('info', "Connexion réussie", $event->user->id);
+            $this->logAuth('info', "Connexion réussie", $event->user->getAuthIdentifier());
         });
 
         Event::listen(function (Logout $event): void {
-            $this->logAuth('info', "Déconnexion", $event->user->id);
+            $this->logAuth('info', "Déconnexion", $event->user->getAuthIdentifier());
         });
 
         Event::listen(function (Failed $event): void {
@@ -38,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(function (PasswordReset $event): void {
-            $this->logAuth('info', "Mot de passe réinitialisé", $event->user->id);
+            $this->logAuth('info', "Mot de passe réinitialisé", $event->user->getAuthIdentifier());
         });
     }
 
