@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Log;
 use App\Services\RsyslogService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class GeneratorController extends Controller
 {
-    public function create()
+    public function create(): View
     {
         $facilities = [
             'kern', 'user', 'mail', 'daemon', 'auth', 'syslog',
@@ -24,7 +26,7 @@ class GeneratorController extends Controller
         return view('generator', compact('facilities', 'priorities'));
     }
 
-    public function store(Request $request, RsyslogService $rsyslog)
+    public function store(Request $request, RsyslogService $rsyslog): RedirectResponse
     {
         $data = $request->validate([
             'facility' => 'required|string|in:kern,user,mail,daemon,auth,syslog,lpr,news,uucp,cron,authpriv,ftp,local0,local1,local2,local3,local4,local5,local6,local7',

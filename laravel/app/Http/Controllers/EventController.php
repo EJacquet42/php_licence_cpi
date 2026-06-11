@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Log;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class EventController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = Log::query()->with('user');
 

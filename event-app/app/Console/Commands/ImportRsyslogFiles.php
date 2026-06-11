@@ -21,7 +21,12 @@ class ImportRsyslogFiles extends Command
 
         $imported = 0;
 
-        foreach (glob("{$basePath}/*/*.log") as $filepath) {
+        $files = glob("{$basePath}/*/*.log");
+        if ($files === false) {
+            return Command::SUCCESS;
+        }
+
+        foreach ($files as $filepath) {
             $lines = file($filepath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             if ($lines === false) {
                 continue;
@@ -29,9 +34,6 @@ class ImportRsyslogFiles extends Command
 
             foreach ($lines as $line) {
                 $parsed = $this->parseLine($line);
-                if ($parsed === null) {
-                    continue;
-                }
 
                 $exists = Log::where('message', $parsed['message'])->exists();
 
@@ -56,7 +58,8 @@ class ImportRsyslogFiles extends Command
         return Command::SUCCESS;
     }
 
-    private function parseLine(string $line): ?array
+    /** @return array<string, mixed> */
+    private function parseLine(string $line): array
     {
         $decoded = json_decode($line, true);
         if (is_array($decoded) && isset($decoded['message'])) {
@@ -114,7 +117,6 @@ class ImportRsyslogFiles extends Command
             5 => 'notice',
             6 => 'info',
             7 => 'debug',
-            default => 'info',
         };
     }
 }

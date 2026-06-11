@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['user_id', 'type', 'facility', 'priority', 'message', 'questions_data', 'score', 'total'])]
 class Log extends Model
 {
+    /** @use HasFactory<\Database\Factories\LogFactory> */
     use HasFactory;
     protected function casts(): array
     {

@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Log;
 use App\Services\RsyslogService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function submit(Request $request, RsyslogService $rsyslog)
+    public function submit(Request $request, RsyslogService $rsyslog): JsonResponse
     {
         $data = $request->validate([
             'questions' => 'required|array',
@@ -20,7 +21,8 @@ class DashboardController extends Controller
         $questions = config('quiz.questions');
         $total = count($questions);
         $score = 0;
-        $email = $request->user()->email;
+        $user = $request->user();
+        $email = $user !== null ? $user->email : 'inconnu';
         $results = [];
 
         foreach ($data['questions'] as $submission) {
