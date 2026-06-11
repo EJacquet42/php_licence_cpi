@@ -26,16 +26,16 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(function (Login $event): void {
-            $this->logAuth('info', "Connexion réussie — {$event->user->email}", $event->user);
+            $this->logAuth('notice', "Connexion réussie — {$event->user->email}", $event->user);
         });
 
         Event::listen(function (Logout $event): void {
-            $this->logAuth('info', "Déconnexion — {$event->user->email}", $event->user);
+            $this->logAuth('notice', "Déconnexion — {$event->user->email}", $event->user);
         });
 
         Event::listen(function (Failed $event): void {
             $user = $event->user ? "{$event->user->email}" : $event->credentials['email'] ?? 'inconnu';
-            $this->logAuth('notice', "Tentative de connexion échouée — {$user}");
+            $this->logAuth('warning', "Tentative de connexion échouée — {$user}");
         });
 
         Event::listen(function (PasswordReset $event): void {

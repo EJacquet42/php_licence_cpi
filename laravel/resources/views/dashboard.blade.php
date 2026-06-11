@@ -57,15 +57,6 @@
                     >
                         Réinitialiser
                     </button>
-
-                    <button
-                        type="button"
-                        id="submitBtn"
-                        onclick="submitQuiz()"
-                        class="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition hidden"
-                    >
-                        Envoyer les logs
-                    </button>
                 </div>
             </form>
 
@@ -75,8 +66,6 @@
 
     <script>
         const questions = @json($questions);
-        let lastScore = null;
-        let lastTotal = null;
 
         function correctQuiz() {
             let score = 0;
@@ -143,10 +132,7 @@
 
             result.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-            lastScore = score;
-            lastTotal = total;
-
-            document.getElementById('submitBtn').classList.remove('hidden');
+            submitQuiz();
         }
 
         function resetQuiz() {
@@ -160,10 +146,6 @@
             const result = document.getElementById('quizResult');
             result.className = 'hidden mt-8 p-5 rounded-xl font-semibold text-lg';
             result.innerHTML = '';
-
-            document.getElementById('submitBtn').classList.add('hidden');
-            lastScore = null;
-            lastTotal = null;
         }
 
         function submitQuiz() {
@@ -176,10 +158,6 @@
                 });
             });
 
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Envoi en cours...';
-
             fetch('{{ route('dashboard.submit') }}', {
                 method: 'POST',
                 headers: {
@@ -191,14 +169,11 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    btn.textContent = 'Envoyé ✓';
-                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    btn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                    console.log('Logs envoyés avec succès');
                 }
             })
             .catch(() => {
-                btn.disabled = false;
-                btn.textContent = 'Erreur - Réessayer';
+                console.error('Erreur lors de l\'envoi des logs');
             });
         }
     </script>
