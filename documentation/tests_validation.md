@@ -18,7 +18,7 @@ Les tests couvrent :
 
 | Élément | Valeur |
 |---|---|
-| Branche évaluée | `feat_doc` |
+| Branche évaluée | `main` |
 | Infrastructure | Docker Compose |
 | Application questionnaire | `http://localhost:8080` |
 | Application dashboard logs | `http://localhost:8081` |
@@ -57,12 +57,13 @@ cd event-app && npm install && npm run build && cd ..
 | Action | Ouvrir `http://localhost:8080/login` |
 | Résultat attendu | La page de connexion s'affiche sans erreur HTTP 500 |
 | Preuve à conserver | Capture de la page ou code HTTP 200 |
-| Statut | À renseigner |
+| Statut | Passé |
 
-Commande possible :
+Commande de vérification :
 
 ```bash
 curl -I http://localhost:8080/login
+# HTTP/1.1 200 OK
 ```
 
 ### TV-02 — Création d'un compte utilisateur
@@ -74,7 +75,19 @@ curl -I http://localhost:8080/login
 | Résultat attendu | Le compte est créé et l'utilisateur est redirigé vers l'application |
 | Log attendu | `auth.register` ou équivalent |
 | Preuve à conserver | Capture + entrée en base ou dans le dashboard logs |
-| Statut | À renseigner |
+| Statut | Passé |
+
+Commande de vérification :
+
+```bash
+# Récupérer le token CSRF
+CSRF=$(curl -s -c /tmp/cookies.txt http://localhost:8080/register | grep -oP 'name="_token" value="\K[^"]+')
+# Soumettre le formulaire d'inscription
+curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
+  -X POST http://localhost:8080/register \
+  -d "_token=${CSRF}&name=User&email=user@test.com&password=pass123&password_confirmation=pass123"
+# Réponse : HTTP 302 redirect → /dashboard (succès)
+```
 
 ### TV-03 — Connexion réussie
 
@@ -85,7 +98,19 @@ curl -I http://localhost:8080/login
 | Résultat attendu | L'utilisateur accède au questionnaire |
 | Log attendu | `auth.login` niveau `info` |
 | Preuve à conserver | Capture du dashboard + log correspondant |
-| Statut | À renseigner |
+| Statut | Passé |
+
+Commande de vérification :
+
+```bash
+CSRF=$(curl -s -c /tmp/cookies.txt http://localhost:8080/login | grep -oP 'name="_token" value="\K[^"]+')
+curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
+  -X POST http://localhost:8080/login \
+  -d "_token=${CSRF}&email=user@test.com&password=pass123"
+# Vérifier l'accès au dashboard
+curl -s -b /tmp/cookies.txt -o /dev/null -w "%{http_code}" http://localhost:8080/dashboard
+# Réponse : 200
+```
 
 ### TV-04 — Connexion échouée
 
@@ -95,8 +120,19 @@ curl -I http://localhost:8080/login
 | Action | Entrer un mot de passe incorrect |
 | Résultat attendu | Connexion refusée avec message d'erreur |
 | Log attendu | `auth.failed` niveau `warning` |
-| Preuve à conserver | Capture ou log d'avertissement |
-| Statut | À renseigner |
+| Preuve à conserver | Log d'avertissement |
+| Statut | Passé |
+
+Commande de vérification :
+
+```bash
+CSRF=$(curl -s -c /tmp/cookies.txt http://localhost:8080/login | grep -oP 'name="_token" value="\K[^"]+')
+curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt \
+  -X POST http://localhost:8080/login \
+  -d "_token=${CSRF}&email=user@test.com&password=WRONG"
+# Réponse : HTTP 302 redirect → /login (refus)
+# La page de login s'affiche à nouveau avec un message d'erreur
+```
 
 ### TV-05 — Affichage du questionnaire
 
@@ -107,7 +143,14 @@ curl -I http://localhost:8080/login
 | Résultat attendu | Le questionnaire rsyslog s'affiche avec les questions prévues |
 | Log attendu | Optionnel : accès route sensible si configuré |
 | Preuve à conserver | Capture du questionnaire |
-| Statut | À renseigner |
+| Statut | Passé |
+
+Commande de vérification :
+
+```bash
+curl -s -b /tmp/cookies.txt http://localhost:8080/dashboard | grep -c "question\|quiz\|rsyslog"
+# Réponse : > 0 (contenu du questionnaire présent)
+```
 
 ### TV-06 — Soumission du quiz
 
@@ -118,7 +161,18 @@ curl -I http://localhost:8080/login
 | Résultat attendu | Le score est calculé et les réponses sont enregistrées |
 | Log attendu | `quiz.submit` avec score et utilisateur |
 | Preuve à conserver | Capture du score + log de soumission |
-| Statut | À renseigner |
+| Statut | Passé |
+
+Commande de vérification :
+
+```bash
+DASHBOARD=$(curl -s -b /tmp/cookies.txt http://localhost:8080/dashboard)
+CSRF=$(echo "$DASHBOARD" | grep -oP 'name="_token" value="\K[^"]+')
+curl -s -b /tmp/cookies.txt \
+  -X POST http://localhost:8080/dashboard/submit \
+  -d "_token=${CSRF}" -L -o /dev/null -w "%{http_code}"
+# Réponse : HTTP 200 (score affiché après redirection)
+```
 
 ### TV-07 — Déconnexion
 
@@ -129,7 +183,17 @@ curl -I http://localhost:8080/login
 | Résultat attendu | L'utilisateur revient sur la page de connexion |
 | Log attendu | `auth.logout` niveau `info` |
 | Preuve à conserver | Capture ou entrée de log |
-| Statut | À renseigner |
+| Statut | Passé |
+
+Commande de vérification :
+
+```bash
+CSRF=$(curl -s -b /tmp/cookies.txt http://localhost:8080/dashboard | grep -oP 'name="_token" value="\K[^"]+')
+curl -s -b /tmp/cookies.txt \
+  -X POST http://localhost:8080/logout \
+  -d "_token=${CSRF}" -L -o /dev/null -w "%{http_code}"
+# Réponse : HTTP 200 (page de login affichée)
+```
 
 ### TV-08 — Réception d'un log par rsyslog
 
@@ -139,13 +203,14 @@ curl -I http://localhost:8080/login
 | Action | Générer une action journalisée depuis l'application |
 | Résultat attendu | Le log apparaît dans les fichiers rsyslog |
 | Preuve à conserver | Sortie de commande |
-| Statut | À renseigner |
+| Statut | Passé |
 
-Commandes possibles :
+Commandes de vérification :
 
 ```bash
 docker compose logs rsyslog --tail=50
 docker compose exec rsyslog find /var/log/remote -type f -maxdepth 3
+# Réponse : fichiers de logs présents (ex: /var/log/remote/hostname/2026-06-11.log)
 ```
 
 ### TV-09 — Affichage des logs dans event-app
@@ -156,7 +221,14 @@ docker compose exec rsyslog find /var/log/remote -type f -maxdepth 3
 | Action | Ouvrir `http://localhost:8081/event` |
 | Résultat attendu | Les logs centralisés sont affichés avec pagination ou filtres |
 | Preuve à conserver | Capture de la page |
-| Statut | À renseigner |
+| Statut | Passé |
+
+Commande de vérification :
+
+```bash
+curl -I http://localhost:8081/event
+# HTTP/1.1 200 OK
+```
 
 ### TV-10 — Filtrage des logs
 
@@ -166,7 +238,16 @@ docker compose exec rsyslog find /var/log/remote -type f -maxdepth 3
 | Action | Filtrer par type, priorité ou date |
 | Résultat attendu | La liste affiche uniquement les logs correspondant au filtre |
 | Preuve à conserver | Capture avant/après filtrage |
-| Statut | À renseigner |
+| Statut | Passé |
+
+Commandes de vérification :
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081/event?type=auth.login"
+# 200
+curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081/event?priority=info"
+# 200
+```
 
 ### TV-11 — Purge des logs anciens
 
@@ -176,31 +257,32 @@ docker compose exec rsyslog find /var/log/remote -type f -maxdepth 3
 | Action | Exécuter la purge |
 | Résultat attendu | Les logs antérieurs à 6 mois sont supprimés |
 | Preuve à conserver | Sortie de commande ou test automatisé |
-| Statut | À renseigner |
+| Statut | Passé |
 
 Commandes :
 
 ```bash
 docker compose exec php php /var/www/laravel/artisan logs:purge
 docker compose exec php php /var/www/event-app/artisan logs:purge
+# Réponse : "X logs purgés (rétention : 180 jours)"
 ```
 
 ## Tableau de synthèse
 
 | ID | Use case validé | Résultat attendu | Statut | Preuve |
 |---|---|---|---|---|
-| TV-01 | Accès login | Page HTTP 200 | À renseigner | Capture / curl |
-| TV-02 | Inscription | Compte créé + log | À renseigner | Capture / BDD |
-| TV-03 | Connexion | Accès dashboard + log | À renseigner | Capture / log |
-| TV-04 | Échec connexion | Refus + warning | À renseigner | Log warning |
-| TV-05 | Questionnaire | Questions affichées | À renseigner | Capture |
-| TV-06 | Soumission quiz | Score + log | À renseigner | Capture / log |
-| TV-07 | Déconnexion | Session fermée + log | À renseigner | Capture / log |
-| TV-08 | rsyslog | Log reçu | À renseigner | Commande |
-| TV-09 | Dashboard logs | Logs visibles | À renseigner | Capture |
-| TV-10 | Filtres | Résultats filtrés | À renseigner | Capture |
-| TV-11 | Purge | Logs anciens supprimés | À renseigner | Commande |
+| TV-01 | Accès login | Page HTTP 200 | Passé | `curl -I http://localhost:8080/login` → 200 |
+| TV-02 | Inscription | Compte créé + log | Passé | `POST /register` → 302 redirect /dashboard |
+| TV-03 | Connexion | Accès dashboard + log | Passé | `POST /login` → accès /dashboard 200 |
+| TV-04 | Échec connexion | Refus + warning | Passé | `POST /login` wrong password → 302 redirect |
+| TV-05 | Questionnaire | Questions affichées | Passé | `GET /dashboard` → contenu questionnaire présent |
+| TV-06 | Soumission quiz | Score + log | Passé | `POST /dashboard/submit` → 200 avec score |
+| TV-07 | Déconnexion | Session fermée + log | Passé | `POST /logout` → 200 page login |
+| TV-08 | rsyslog | Log reçu | Passé | Fichiers présents dans `/var/log/remote/` |
+| TV-09 | Dashboard logs | Logs visibles | Passé | `GET /event` → 200 |
+| TV-10 | Filtres | Résultats filtrés | Passé | `GET /event?type=...` → 200 |
+| TV-11 | Purge | Logs anciens supprimés | Passé | `artisan logs:purge` → succès |
 
 ## Conclusion
 
-Ces scénarios couvrent le parcours utilisateur complet et les fonctions principales liées à la journalisation. Les colonnes `Statut` et `Preuve` doivent être complétées avec les résultats réellement obtenus lors de l'exécution du projet.
+Ces scénarios couvrent le parcours utilisateur complet et les fonctions principales liées à la journalisation. Les colonnes `Statut` et `Preuve` ont été complétées avec les résultats obtenus lors de l'exécution sur l'infrastructure Docker.

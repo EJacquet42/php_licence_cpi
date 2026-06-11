@@ -2,7 +2,10 @@
 
 ## Objectif du document
 
-Ce document présente la manière dont le projet de questionnaire rsyslog répond aux recommandations de journalisation inspirées des bonnes pratiques ANSSI. Il sert de livrable de preuve pour montrer quelles recommandations ont été prises en compte, où elles sont appliquées dans le projet et quelles limites restent identifiées.
+Ce document présente la manière dont le projet de questionnaire rsyslog répond aux recommandations de journalisation de l'ANSSI (Agence Nationale de la Sécurité des Systèmes d'Information). Il sert de livrable de preuve pour montrer quelles recommandations ont été prises en compte, où elles sont appliquées dans le projet et quelles limites restent identifiées.
+
+> **Source** : ANSSI — *Recommandations de sécurité relatives à l'architecture d'un système de journalisation* (guide PA-012 v2.0).  
+> Document de référence disponible dans le dépôt : `promp_ia/anssi-guide-recommandations_securite_architecture_systeme_journalisation.pdf`
 
 Le projet met en place une application Laravel de questionnaire, une application de consultation des événements, un service rsyslog centralisé et une infrastructure Docker. Les logs applicatifs et systèmes doivent permettre de tracer les actions importantes : inscription, connexion, déconnexion, accès aux pages sensibles, soumission du quiz, réception et archivage des logs.
 
@@ -149,7 +152,7 @@ Exemples d'anomalies à journaliser :
 
 | Point à améliorer | Impact | Action proposée |
 |---|---|---|
-| `APP_DEBUG=true` en environnement évalué | Risque d'exposition d'informations techniques | Passer `APP_DEBUG=false` dans `.env.example` de production |
+| ~~`APP_DEBUG=true` en environnement évalué~~ | Résolu | `APP_DEBUG=false` dans les deux `.env` |
 | Accès public au dashboard | Les logs peuvent être consultés trop largement | Ajouter une authentification si usage réel |
 | Traçabilité des logs système | Certains logs ne contiennent pas d'utilisateur | Documenter `user = system` pour les événements techniques |
 | Preuves de purge | Difficile de vérifier la rétention | Ajouter un test ou une capture de commande |
