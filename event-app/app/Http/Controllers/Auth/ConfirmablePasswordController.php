@@ -13,17 +13,11 @@ use Illuminate\View\View;
 
 class ConfirmablePasswordController extends Controller
 {
-    /**
-     * Show the confirm password view.
-     */
     public function show(): View
     {
         return view('auth.confirm-password');
     }
 
-    /**
-     * Confirm the user's password.
-     */
     public function store(Request $request): RedirectResponse
     {
         $confirmed = Auth::guard('web')->validate([
@@ -33,13 +27,13 @@ class ConfirmablePasswordController extends Controller
 
         $user = $request->user();
         $log = Log::create([
-            'user_id' => $user->id,
+            'user_id' => $user->getAuthIdentifier(),
             'type' => 'auth',
             'facility' => 'auth',
             'priority' => $confirmed ? 'info' : 'notice',
             'message' => $confirmed
-                ? "Mot de passe confirmé pour action sensible — id {$user->id}"
-                : "Échec de confirmation du mot de passe — id {$user->id}",
+                ? "Mot de passe confirmé pour action sensible — id {$user->getAuthIdentifier()}"
+                : "Échec de confirmation du mot de passe — id {$user->getAuthIdentifier()}",
         ]);
 
         try {

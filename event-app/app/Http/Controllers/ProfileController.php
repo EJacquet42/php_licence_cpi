@@ -13,9 +13,6 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
     public function edit(Request $request): View
     {
         return view('profile.edit', [
@@ -23,9 +20,6 @@ class ProfileController extends Controller
         ]);
     }
 
-    /**
-     * Update the user's profile information.
-     */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
@@ -43,15 +37,12 @@ class ProfileController extends Controller
         $user->save();
 
         if ($user->wasChanged('email')) {
-            $this->logAccount('info', "Adresse email modifiée — id {$user->id}", $user);
+            $this->logAccount('info', "Adresse email modifiée — id {$user->getAuthIdentifier()}", $user);
         }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
-    /**
-     * Delete the user's account.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
@@ -64,7 +55,7 @@ class ProfileController extends Controller
             return Redirect::to('/');
         }
 
-        $this->logAccount('alert', "Compte utilisateur supprimé — id {$user->id}", $user);
+        $this->logAccount('alert', "Compte utilisateur supprimé — id {$user->getAuthIdentifier()}", $user);
 
         Auth::logout();
 
@@ -79,7 +70,7 @@ class ProfileController extends Controller
     private function logAccount(string $priority, string $message, mixed $user): void
     {
         $log = Log::create([
-            'user_id' => $user->id,
+            'user_id' => $user->getAuthIdentifier(),
             'type' => 'account',
             'facility' => 'authpriv',
             'priority' => $priority,
