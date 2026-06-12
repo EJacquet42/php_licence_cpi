@@ -175,7 +175,7 @@ Application de Dashboard - Port 8081
 
 - Affichage de logs en temps réel, possibilité de tri
 - Filtre de catégorie avec options de tri
-- Message de logs clair
+- Statistiques par catégorie
 - Code couleur selon type d'erreur
 - Vue des informations des logs
 
@@ -198,12 +198,13 @@ Les performances sont évaluées sur les actions critiques.
 
 # Contraintes techniques
 
-| Élément | Contrainte |
-|---|---|
-| Langage | PHP |
+| Élément          | Contrainte     |
+|------------------|----------------|
+| Langage          | PHP            |
 | Conteneurisation | Docker Compose |
-| Journalisation | rsyslog |
-| Base de données | PostgreSQL |
+| Journalisation   | rsyslog        |
+| Base de données  | PostgreSQL     |
+| Délais           | 1 semaine      |
 
 ---
 
