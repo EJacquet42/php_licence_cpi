@@ -1,0 +1,30 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Admin" as Admin
+
+
+rectangle "event-app : Dashboard logs" {
+
+  usecase "Accéder au dashboard\ndes logs" as UC_Dashboard
+  usecase "Consulter les logs" as UC_ViewLogs
+  usecase "Filtrer les logs\n(type, priorité, date)" as UC_FilterLogs
+
+  usecase "Consulter les statistiques\ngénérales" as UC_Stats
+  usecase "Visualiser les graphiques\npriorité, type, évolution" as UC_Charts
+
+  usecase "Consulter les statistiques\npar question" as UC_QuestionStats
+  }
+
+Admin --> UC_Dashboard
+UC_Dashboard --> UC_ViewLogs : <<include>>
+UC_Dashboard --> UC_Stats : <<include>>
+UC_Dashboard --> UC_Charts : <<include>>
+
+Admin --> UC_FilterLogs
+UC_FilterLogs ..> UC_ViewLogs : <<extend>>
+
+Admin --> UC_QuestionStats
+
+@enduml
