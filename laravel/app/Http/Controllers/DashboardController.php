@@ -22,7 +22,8 @@ class DashboardController extends Controller
         $total = count($questions);
         $score = 0;
         $user = $request->user();
-        $email = $user !== null ? $user->email : 'inconnu';
+        $userId = $user !== null ? $user->id : null;
+        $userIdLabel = $userId !== null ? "id {$userId}" : 'inconnu';
         $results = [];
 
         foreach ($data['questions'] as $submission) {
@@ -46,11 +47,11 @@ class DashboardController extends Controller
             $results[] = $result;
 
             $questionLog = Log::create([
-                'user_id' => Auth::id(),
+                'user_id' => $userId,
                 'type' => 'question',
                 'facility' => 'user',
                 'priority' => 'info',
-                'message' => "Question {$index} — {$email}: " . ($correct ? 'Correct' : 'Incorrect'),
+                'message' => "Question {$index} — {$userIdLabel}: " . ($correct ? 'Correct' : 'Incorrect'),
                 'questions_data' => $result,
                 'score' => $correct ? 1 : 0,
                 'total' => 1,
@@ -60,11 +61,11 @@ class DashboardController extends Controller
         }
 
         $summaryLog = Log::create([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'type' => 'quiz',
             'facility' => 'user',
             'priority' => 'info',
-            'message' => "Quiz soumis — {$email}: score {$score}/{$total}",
+            'message' => "Quiz soumis — {$userIdLabel}: score {$score}/{$total}",
             'questions_data' => $results,
             'score' => $score,
             'total' => $total,

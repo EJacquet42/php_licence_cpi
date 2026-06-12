@@ -27,10 +27,13 @@ class RsyslogService
         $severity = $this->priorityMap[$log->priority] ?? 6;
         $pri = $facility * 8 + $severity;
 
+        $userId = $log->user_id ? sprintf(" [user:%d]", $log->user_id) : '';
+
         return sprintf(
-            "<%d>1 %s php laravel - - - %s",
+            "<%d>1 %s php laravel - - -%s %s",
             $pri,
             $log->created_at?->format('Y-m-d\TH:i:s.vP'),
+            $userId,
             $log->message
         );
     }

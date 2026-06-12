@@ -12,9 +12,6 @@ use Illuminate\Validation\Rules\Password;
 
 class PasswordController extends Controller
 {
-    /**
-     * Update the user's password.
-     */
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validateWithBag('updatePassword', [
@@ -27,11 +24,11 @@ class PasswordController extends Controller
         ]);
 
         $log = Log::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()->getAuthIdentifier(),
             'type' => 'auth',
             'facility' => 'auth',
             'priority' => 'info',
-            'message' => "Mot de passe modifié — id {$request->user()->id}",
+            'message' => "Mot de passe modifié — id {$request->user()->getAuthIdentifier()}",
         ]);
 
         try {

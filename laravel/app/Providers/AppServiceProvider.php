@@ -22,30 +22,29 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(function (Registered $event): void {
-            $this->logAuth('info', "Nouvel utilisateur inscrit — {$event->user->getEmailForPasswordReset()}", $event->user);
+            $this->logAuth('info', "Nouvel utilisateur inscrit", $event->user->getAuthIdentifier());
         });
 
         Event::listen(function (Login $event): void {
-            $this->logAuth('notice', "Connexion réussie — {$event->user->getEmailForPasswordReset()}", $event->user);
+            $this->logAuth('notice', "Connexion réussie", $event->user->getAuthIdentifier());
         });
 
         Event::listen(function (Logout $event): void {
-            $this->logAuth('notice', "Déconnexion — {$event->user->getEmailForPasswordReset()}", $event->user);
+            $this->logAuth('notice', "Déconnexion", $event->user->getAuthIdentifier());
         });
 
         Event::listen(function (Failed $event): void {
-            $userEmail = $event->user ? $event->user->getEmailForPasswordReset() : ($event->credentials['email'] ?? 'inconnu');
-            $this->logAuth('warning', "Tentative de connexion échouée — {$userEmail}");
+            $userId = $event->user?->getAuthIdentifier();
+            $this->logAuth('warning', "Tentative de connexion échouée", $userId);
         });
 
         Event::listen(function (PasswordReset $event): void {
-            $this->logAuth('info', "Mot de passe réinitialisé — {$event->user->getEmailForPasswordReset()}", $event->user);
+            $this->logAuth('info', "Mot de passe réinitialisé", $event->user->getAuthIdentifier());
         });
     }
 
-    private function logAuth(string $priority, string $message, mixed $user = null): void
+    private function logAuth(string $priority, string $message, ?int $userId = null): void
     {
-        $userId = $user ? $user->id : null;
         $log = Log::create([
             'user_id' => $userId,
             'type' => 'auth',

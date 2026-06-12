@@ -34,7 +34,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(function (Failed $event): void {
-            $this->logAuth('notice', "Tentative de connexion échouée", userId: null);
+            $userId = $event->user?->getAuthIdentifier();
+            $this->logAuth('notice', "Tentative de connexion échouée", $userId);
         });
 
         Event::listen(function (PasswordReset $event): void {
